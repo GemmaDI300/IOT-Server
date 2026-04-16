@@ -1,0 +1,44 @@
+version: "3.9"
+
+services:
+  # ── Backend (FastAPI + SQLite) ──
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: iot-backend
+    env_file:
+      - .env.docker
+    ports:
+      - "8000:8000"
+    volumes:
+      - sqlite_data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/docs')"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+
+  # ── Frontend (React + Nginx reverse proxy) ──
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.test
+      args:
+        # URL relativa: nginx hace proxy al backend
+        VITE_API_BASE_URL: /api/v1/
+    container_name: iot-frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  sqlite_data:
+    driver: local
+
+
