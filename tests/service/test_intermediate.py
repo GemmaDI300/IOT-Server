@@ -1,6 +1,33 @@
 """Tests para tablas intermedias de Service — managers, applications, devices."""
 import pytest
+<<<<<<< Updated upstream
 from datetime import datetime
+=======
+from datetime import datetime, timezone, timedelta
+from jose import jwt
+from app.config import settings
+
+APP_BASE = {
+    "version": "1.0.0",
+    "url": "https://test.com",
+    "description": "Test app",
+}
+
+
+def create_token(account_data: dict) -> str:
+    """Create a valid JWT token for testing."""
+    to_encode = {
+        "sub": str(account_data["id"]),
+        "email": account_data["email"],
+        "type": account_data["account_type"],
+        "is_master": account_data["is_master"],
+    }
+    expire = datetime.now(timezone.utc) + timedelta(
+        minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
+    )
+    to_encode["exp"] = expire
+    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+>>>>>>> Stashed changes
 
 
 # ── Fixtures ────────────────────────────────────────────────────────
@@ -21,6 +48,7 @@ def service_data(client, master_admin_account):
 
 
 @pytest.fixture
+<<<<<<< Updated upstream
 def second_service(client, master_admin_account):
     """Crear un segundo service."""
     response = client.post(
@@ -35,16 +63,23 @@ def second_service(client, master_admin_account):
 
 
 @pytest.fixture
+=======
+>>>>>>> Stashed changes
 def application_data(client, master_admin_account):
     """Crear una application para las pruebas."""
     response = client.post(
         "/api/v1/applications",
         json={
             "name": "App de Prueba",
+<<<<<<< Updated upstream
             "version": "1.0.0",
             "url": "https://test.com",
             "description": "Test app",
             "administrator_id": str(master_admin_account["id"]),
+=======
+            "administrator_id": str(master_admin_account["id"]),
+            **APP_BASE,
+>>>>>>> Stashed changes
         },
     )
     assert response.status_code == 201
@@ -52,6 +87,7 @@ def application_data(client, master_admin_account):
 
 
 @pytest.fixture
+<<<<<<< Updated upstream
 def device_data(db):
     """Crear un device directamente en BD (evita auth)."""
     from sqlmodel import Session as SqlSession
@@ -68,6 +104,22 @@ def device_data(db):
         session.commit()
         session.refresh(device)
         return {"id": str(device.id), "name": device.name}
+=======
+def device_data(client, master_admin_account):
+    """Crear un device para las pruebas (requiere auth)."""
+    token = create_token(master_admin_account)
+    response = client.post(
+        "/api/v1/devices",
+        json={
+            "name": "Sensor de Prueba",
+            "brand": "TestBrand",
+            "model": "T-100",
+        },
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 201
+    return response.json()
+>>>>>>> Stashed changes
 
 
 # ── Tests: ManagerService ───────────────────────────────────────────

@@ -5,6 +5,8 @@ from pydantic import BaseModel, field_validator
 
 from app.shared.base_domain.schemas import BaseSchemaResponse
 
+from uuid import UUID
+
 
 MAC_REGEX = re.compile(
     r"^([0-9A-Fa-f]{2}[:\-]){5}([0-9A-Fa-f]{2})$"
@@ -78,3 +80,12 @@ class DeviceResponse(BaseSchemaResponse):
     ip: str | None = None
     mac: str | None = None
     is_active: bool
+
+class PuzzlePayload(BaseModel):
+    ciphertext: str
+    iv: str
+
+
+class PuzzleRequest(BaseModel):
+    device_id: UUID
+    encrypted_payload: PuzzlePayload

@@ -45,7 +45,11 @@ class TestCreateApplication:
         assert response.status_code == 201
         data = response.json()
         assert "server_key" in data
+<<<<<<< Updated upstream
         assert len(data["server_key"]) == 64  # SHA256 hex = 64 chars
+=======
+        assert len(data["server_key"]) == 64
+>>>>>>> Stashed changes
 
     def test_create_application_server_key_not_in_get(self, client, master_admin_account):
         create_response = client.post(
@@ -73,7 +77,11 @@ class TestCreateApplication:
         assert response.status_code == 201
         data = response.json()
         assert "api_key" in data
+<<<<<<< Updated upstream
         assert len(data["api_key"]) == 64  # token_hex(32) = 64 chars
+=======
+        assert len(data["api_key"]) == 64
+>>>>>>> Stashed changes
 
     def test_create_application_without_name_fails(self, client, master_admin_account):
         response = client.post(
