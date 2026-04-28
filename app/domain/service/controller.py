@@ -45,10 +45,6 @@ service_router = ServiceController().router
     tags=["Service Managers"],
 )
 def assign_manager(service_id: UUID, manager_id: UUID, session: SessionDep):
-<<<<<<< Updated upstream
-    """Asignar un manager a un service."""
-=======
->>>>>>> Stashed changes
     service = session.get(Service, service_id)
     if not service:
         raise HTTPException(status_code=404, detail="Service not found")
@@ -79,10 +75,6 @@ def assign_manager(service_id: UUID, manager_id: UUID, session: SessionDep):
     tags=["Service Managers"],
 )
 def unassign_manager(service_id: UUID, manager_id: UUID, session: SessionDep):
-<<<<<<< Updated upstream
-    """Desasignar un manager de un service."""
-=======
->>>>>>> Stashed changes
     manager_service = session.exec(
         select(ManagerService).where(
             ManagerService.manager_id == manager_id,
@@ -102,10 +94,6 @@ def unassign_manager(service_id: UUID, manager_id: UUID, session: SessionDep):
     tags=["Service Managers"],
 )
 def list_managers(service_id: UUID, session: SessionDep):
-<<<<<<< Updated upstream
-    """Listar managers asignados a un service."""
-=======
->>>>>>> Stashed changes
     service = session.get(Service, service_id)
     if not service:
         raise HTTPException(status_code=404, detail="Service not found")
@@ -125,10 +113,6 @@ def list_managers(service_id: UUID, session: SessionDep):
     tags=["Service Applications"],
 )
 def assign_application(service_id: UUID, application_id: UUID, session: SessionDep):
-<<<<<<< Updated upstream
-    """Asignar una application a un service."""
-=======
->>>>>>> Stashed changes
     service = session.get(Service, service_id)
     if not service:
         raise HTTPException(status_code=404, detail="Service not found")
@@ -159,10 +143,6 @@ def assign_application(service_id: UUID, application_id: UUID, session: SessionD
     tags=["Service Applications"],
 )
 def unassign_application(service_id: UUID, application_id: UUID, session: SessionDep):
-<<<<<<< Updated upstream
-    """Desasignar una application de un service."""
-=======
->>>>>>> Stashed changes
     app_service = session.exec(
         select(ApplicationService).where(
             ApplicationService.application_id == application_id,
@@ -182,10 +162,6 @@ def unassign_application(service_id: UUID, application_id: UUID, session: Sessio
     tags=["Service Applications"],
 )
 def list_applications(service_id: UUID, session: SessionDep):
-<<<<<<< Updated upstream
-    """Listar applications asignadas a un service."""
-=======
->>>>>>> Stashed changes
     service = session.get(Service, service_id)
     if not service:
         raise HTTPException(status_code=404, detail="Service not found")
@@ -205,10 +181,6 @@ def list_applications(service_id: UUID, session: SessionDep):
     tags=["Service Devices"],
 )
 def assign_device(service_id: UUID, device_id: UUID, session: SessionDep):
-<<<<<<< Updated upstream
-    """Asignar un device a un service."""
-=======
->>>>>>> Stashed changes
     service = session.get(Service, service_id)
     if not service:
         raise HTTPException(status_code=404, detail="Service not found")
@@ -239,10 +211,6 @@ def assign_device(service_id: UUID, device_id: UUID, session: SessionDep):
     tags=["Service Devices"],
 )
 def unassign_device(service_id: UUID, device_id: UUID, session: SessionDep):
-<<<<<<< Updated upstream
-    """Desasignar un device de un service."""
-=======
->>>>>>> Stashed changes
     device_service = session.exec(
         select(DeviceService).where(
             DeviceService.device_id == device_id,
@@ -262,10 +230,6 @@ def unassign_device(service_id: UUID, device_id: UUID, session: SessionDep):
     tags=["Service Devices"],
 )
 def list_devices(service_id: UUID, session: SessionDep):
-<<<<<<< Updated upstream
-    """Listar devices asignados a un service."""
-=======
->>>>>>> Stashed changes
     service = session.get(Service, service_id)
     if not service:
         raise HTTPException(status_code=404, detail="Service not found")

@@ -7,10 +7,6 @@ class ApplicationCreate(BaseModel):
     name: str
     version: str | None = None
     url: str | None = None
-<<<<<<< Updated upstream
-    
-=======
->>>>>>> Stashed changes
     description: str | None = None
     administrator_id: UUID
 
@@ -19,10 +15,6 @@ class ApplicationUpdate(BaseModel):
     name: str | None = None
     version: str | None = None
     url: str | None = None
-<<<<<<< Updated upstream
-    
-=======
->>>>>>> Stashed changes
     description: str | None = None
     is_active: bool | None = None
 
@@ -31,10 +23,6 @@ class ApplicationResponse(BaseSchemaResponse):
     name: str
     version: str | None
     url: str | None
-<<<<<<< Updated upstream
-    
-=======
->>>>>>> Stashed changes
     description: str | None
     administrator_id: UUID
     api_key: str

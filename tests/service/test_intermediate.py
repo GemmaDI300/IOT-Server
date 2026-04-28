@@ -1,8 +1,5 @@
 """Tests para tablas intermedias de Service — managers, applications, devices."""
 import pytest
-<<<<<<< Updated upstream
-from datetime import datetime
-=======
 from datetime import datetime, timezone, timedelta
 from jose import jwt
 from app.config import settings
@@ -27,7 +24,6 @@ def create_token(account_data: dict) -> str:
     )
     to_encode["exp"] = expire
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
->>>>>>> Stashed changes
 
 
 # ── Fixtures ────────────────────────────────────────────────────────
@@ -48,38 +44,14 @@ def service_data(client, master_admin_account):
 
 
 @pytest.fixture
-<<<<<<< Updated upstream
-def second_service(client, master_admin_account):
-    """Crear un segundo service."""
-    response = client.post(
-        "/api/v1/services",
-        json={
-            "name": "Segundo Servicio",
-            "administrator_id": str(master_admin_account["id"]),
-        },
-    )
-    assert response.status_code == 201
-    return response.json()
-
-
-@pytest.fixture
-=======
->>>>>>> Stashed changes
 def application_data(client, master_admin_account):
     """Crear una application para las pruebas."""
     response = client.post(
         "/api/v1/applications",
         json={
             "name": "App de Prueba",
-<<<<<<< Updated upstream
-            "version": "1.0.0",
-            "url": "https://test.com",
-            "description": "Test app",
-            "administrator_id": str(master_admin_account["id"]),
-=======
             "administrator_id": str(master_admin_account["id"]),
             **APP_BASE,
->>>>>>> Stashed changes
         },
     )
     assert response.status_code == 201
@@ -87,24 +59,6 @@ def application_data(client, master_admin_account):
 
 
 @pytest.fixture
-<<<<<<< Updated upstream
-def device_data(db):
-    """Crear un device directamente en BD (evita auth)."""
-    from sqlmodel import Session as SqlSession
-    from app.database.model import Device
-
-    with SqlSession(db) as session:
-        device = Device(
-            name="Sensor de Prueba",
-            brand="TestBrand",
-            model="T-100",
-            is_active=True,
-        )
-        session.add(device)
-        session.commit()
-        session.refresh(device)
-        return {"id": str(device.id), "name": device.name}
-=======
 def device_data(client, master_admin_account):
     """Crear un device para las pruebas (requiere auth)."""
     token = create_token(master_admin_account)
@@ -119,7 +73,6 @@ def device_data(client, master_admin_account):
     )
     assert response.status_code == 201
     return response.json()
->>>>>>> Stashed changes
 
 
 # ── Tests: ManagerService ───────────────────────────────────────────

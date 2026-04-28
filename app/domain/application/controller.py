@@ -70,8 +70,4 @@ async def authenticate_application(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=result["error"],
         )
-<<<<<<< Updated upstream
     return result
-=======
-    return result
->>>>>>> Stashed changes
