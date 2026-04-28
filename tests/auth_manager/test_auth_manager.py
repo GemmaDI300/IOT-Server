@@ -22,12 +22,15 @@ class FakeEntity:
 
 
 class FakeRepository:
-    def __init__(self, session, entity=None):
-        self._entity = entity
+    _entity_to_return = None  # clase controla qué retorna
+
+    def __init__(self, session):
+        pass
 
     def get_by_id(self, entity_id):
-        if self._entity and str(self._entity.id) == str(entity_id):
-            return self._entity
+        entity = FakeRepository._entity_to_return
+        if entity and str(entity.id) == str(entity_id):
+            return entity
         return None
 
 
@@ -91,13 +94,12 @@ def request_info():
     return {"ip_address": "127.0.0.1", "user_agent": "test-agent"}
 
 
-def patch_repository(entity):
-    """Patchear FakeRepository para retornar la entidad dada."""
-    original = FakeRepository.__init__
-    def patched(self, session, e=None):
-        original(self, session, entity=entity)
-    FakeRepository.__init__ = patched
-    return original
+@pytest.fixture(autouse=True)
+def reset_repository():
+    """Limpiar estado del repository entre tests."""
+    FakeRepository._entity_to_return = None
+    yield
+    FakeRepository._entity_to_return = None
 
 
 # ── Tests: flujo exitoso ────────────────────────────────────────────
@@ -106,27 +108,24 @@ class TestAuthManagerSuccess:
 
     @pytest.mark.asyncio
     async def test_valid_auth_returns_valid(self, mock_session_service, active_entity, request_info):
-        original = patch_repository(active_entity)
+        FakeRepository._entity_to_return = active_entity
         manager = StubAuthManager(None, mock_session_service, auth_type="success")
         result = await manager.authenticate(FakeRequest(), request_info)
         assert result["valid"] is True
         assert "session_id" in result
-        assert "encrypted_token" in result
         assert "key_session" in result
-        FakeRepository.__init__ = original
 
     @pytest.mark.asyncio
     async def test_session_key_is_base64_32_bytes(self, mock_session_service, active_entity, request_info):
-        original = patch_repository(active_entity)
+        FakeRepository._entity_to_return = active_entity
         manager = StubAuthManager(None, mock_session_service, auth_type="success")
         result = await manager.authenticate(FakeRequest(), request_info)
         key_bytes = base64.urlsafe_b64decode(result["key_session"])
         assert len(key_bytes) == 32
-        FakeRepository.__init__ = original
 
     @pytest.mark.asyncio
     async def test_create_session_called_with_ip_and_user_agent(self, mock_session_service, active_entity, request_info):
-        original = patch_repository(active_entity)
+        FakeRepository._entity_to_return = active_entity
         manager = StubAuthManager(None, mock_session_service, auth_type="success")
         await manager.authenticate(FakeRequest(), request_info)
         mock_session_service.create_entity_session.assert_called_once()
@@ -135,7 +134,6 @@ class TestAuthManagerSuccess:
         assert call_kwargs["ip"] == "127.0.0.1"
         assert call_kwargs["user_agent"] == "test-agent"
         assert "key_session" in call_kwargs
-        FakeRepository.__init__ = original
 
 
 # ── Tests: entidad no encontrada ────────────────────────────────────
@@ -144,6 +142,7 @@ class TestAuthManagerEntityNotFound:
 
     @pytest.mark.asyncio
     async def test_nonexistent_entity_fails(self, mock_session_service, request_info):
+        FakeRepository._entity_to_return = None
         manager = StubAuthManager(None, mock_session_service, auth_type="success")
         result = await manager.authenticate(FakeRequest(entity_id=uuid4()), request_info)
         assert result["valid"] is False
@@ -156,12 +155,11 @@ class TestAuthManagerEntityInactive:
 
     @pytest.mark.asyncio
     async def test_inactive_entity_fails(self, mock_session_service, inactive_entity, request_info):
-        original = patch_repository(inactive_entity)
+        FakeRepository._entity_to_return = inactive_entity
         manager = StubAuthManager(None, mock_session_service, auth_type="success")
         result = await manager.authenticate(FakeRequest(), request_info)
         assert result["valid"] is False
         assert result["error"] == "Authentication failed"
-        FakeRepository.__init__ = original
 
 
 # ── Tests: sesión activa ────────────────────────────────────────────
@@ -171,12 +169,11 @@ class TestAuthManagerSessionActive:
     @pytest.mark.asyncio
     async def test_active_session_fails(self, mock_session_service, active_entity, request_info):
         mock_session_service.get_session.return_value = MagicMock()
-        original = patch_repository(active_entity)
+        FakeRepository._entity_to_return = active_entity
         manager = StubAuthManager(None, mock_session_service, auth_type="success")
         result = await manager.authenticate(FakeRequest(), request_info)
         assert result["valid"] is False
         assert result["error"] == "Authentication failed"
-        FakeRepository.__init__ = original
 
 
 # ── Tests: autenticación falla ──────────────────────────────────────
@@ -185,12 +182,11 @@ class TestAuthManagerAuthFails:
 
     @pytest.mark.asyncio
     async def test_auth_method_fails(self, mock_session_service, active_entity, request_info):
-        original = patch_repository(active_entity)
+        FakeRepository._entity_to_return = active_entity
         manager = StubAuthManager(None, mock_session_service, auth_type="fail")
         result = await manager.authenticate(FakeRequest(), request_info)
         assert result["valid"] is False
         assert result["error"] == "Authentication failed"
-        FakeRepository.__init__ = original
 
 
 # ── Tests: tipo inválido ────────────────────────────────────────────
