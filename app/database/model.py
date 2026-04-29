@@ -264,28 +264,13 @@ class Role(BaseTable, table=True):
         back_populates="roles",
         sa_relationship_kwargs={"lazy": "selectin"},
     )
-    permission: Optional["RolePermission"] = Relationship(
-        back_populates="role",
-        sa_relationship_kwargs={"lazy": "selectin"},
-    )
     user_roles: list["UserRole"] = Relationship(
         back_populates="role",
         sa_relationship_kwargs={"lazy": "selectin"},
     )
 
 
-class RolePermission(BaseTable, table=True):
-    __tablename__ = "role_permission"  # pyright: ignore[reportAssignmentType]
 
-    role_id: UUID = Field(foreign_key="role.id", unique=True)
-    can_read: bool = Field(default=False)
-    can_write: bool = Field(default=False)
-    can_delete: bool = Field(default=False)
-    can_administer: bool = Field(default=False)
-    role: Role = Relationship(
-        back_populates="permission",
-        sa_relationship_kwargs={"lazy": "selectin"},
-    )
 
 
 class UserRole(BaseTable, table=True):
