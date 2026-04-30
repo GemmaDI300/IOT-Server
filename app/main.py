@@ -12,6 +12,7 @@ from app.domain.application.controller import application_router
 from app.domain.service.controller import service_router
 from app.domain.manager.controller import manager_router
 from app.domain.tickets.controller import ecosystem_ticket_router, service_ticket_router
+from app.domain.role.controller import role_router
 from app.shared.middleware.auth.human import Human
 
 
@@ -41,4 +42,5 @@ app.include_router(application_router, prefix=api_version_v1_prefix)
 app.include_router(service_router, prefix=api_version_v1_prefix)
 app.include_router(service_ticket_router, prefix=api_version_v1_prefix)
 app.include_router(ecosystem_ticket_router, prefix=api_version_v1_prefix)
+app.include_router(role_router, prefix=api_version_v1_prefix)
 
