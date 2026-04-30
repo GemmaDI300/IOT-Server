@@ -2,7 +2,7 @@ from fastapi import HTTPException, status
 
 
 class SessionNotFoundException(HTTPException):
-    """Raised when a session lookup fails for an authenticated request."""
+    """Session lookup failed."""
 
     def __init__(self):
         super().__init__(
@@ -12,17 +12,17 @@ class SessionNotFoundException(HTTPException):
 
 
 class SessionAlreadyExistsException(HTTPException):
-    """Raised when trying to create a session for an entity that already has one."""
+    """Entity already has an active session."""
 
     def __init__(self):
         super().__init__(
             status_code=status.HTTP_409_CONFLICT,
-            detail="An active session already exists for this entity",
+            detail="Conflict",
         )
 
 
 class InvalidRefreshTokenException(HTTPException):
-    """Raised when the supplied refresh token is missing, invalid or expired."""
+    """Refresh token invalid or expired."""
 
     def __init__(self):
         super().__init__(
@@ -32,7 +32,7 @@ class InvalidRefreshTokenException(HTTPException):
 
 
 class RateLimitExceededException(HTTPException):
-    """Raised when an authentication attempt exceeds the configured rate limit."""
+    """Authentication rate limit exceeded."""
 
     def __init__(self, retry_after: int = 900):
         super().__init__(
@@ -43,7 +43,7 @@ class RateLimitExceededException(HTTPException):
 
 
 class InvalidTokenException(HTTPException):
-    """Raised when an access token is malformed, tampered with or unrecognised."""
+    """Access token invalid."""
 
     def __init__(self):
         super().__init__(
@@ -53,7 +53,7 @@ class InvalidTokenException(HTTPException):
 
 
 class SessionExpiredException(HTTPException):
-    """Raised when a session has surpassed its TTL."""
+    """Session expired."""
 
     def __init__(self):
         super().__init__(
@@ -63,7 +63,7 @@ class SessionExpiredException(HTTPException):
 
 
 class InvalidTagException(HTTPException):
-    """Raised when the HMAC tag attached to a request fails verification."""
+    """HMAC tag verification failed."""
 
     def __init__(self):
         super().__init__(
@@ -73,55 +73,40 @@ class InvalidTagException(HTTPException):
 
 
 class InvalidEntityIdException(HTTPException):
-    """Raised when ``entity_id`` is not a valid UUID."""
+    """Invalid entity_id."""
 
     def __init__(self):
         super().__init__(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid entity_id format",
+            detail="Bad request",
         )
 
 
 class InvalidKeySessionException(HTTPException):
-    """Raised when ``key_session`` does not meet the format/length contract.
-
-    The underlying validation reason is intentionally kept out of the HTTP
-    response to avoid leaking parsing internals to the client. Callers must
-    log the specific reason internally via the application logger.
-    """
+    """Invalid key_session."""
 
     def __init__(self):
         super().__init__(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid key_session format",
+            detail="Bad request",
         )
 
 
 class InvalidMetadataException(HTTPException):
-    """Raised when session metadata violates size, key or serialisation rules.
-
-    The underlying validation reason is intentionally kept out of the HTTP
-    response to avoid leaking parsing internals to the client. Callers must
-    log the specific reason internally via the application logger.
-    """
+    """Invalid metadata."""
 
     def __init__(self):
         super().__init__(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid metadata",
+            detail="Bad request",
         )
 
 
 class InvalidIpAddressException(HTTPException):
-    """Raised when the supplied IP address is empty or malformed.
-
-    The underlying validation reason is intentionally kept out of the HTTP
-    response to avoid leaking parsing internals to the client. Callers must
-    log the specific reason internally via the application logger.
-    """
+    """Invalid IP address."""
 
     def __init__(self):
         super().__init__(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid IP address format",
+            detail="Bad request",
         )

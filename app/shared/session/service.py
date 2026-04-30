@@ -36,6 +36,15 @@ logger = logging.getLogger(__name__)
 
 _KEY_SESSION_EXPECTED_BYTES = 32
 
+METADATA_FORBIDDEN_KEYS: frozenset[str] = frozenset({
+    "password",
+    "password_hash",
+    "secret",
+    "private_key",
+    "key_session",
+    "api_key",
+})
+
 
 class SessionService:
     def __init__(
@@ -210,7 +219,7 @@ class SessionService:
             raise InvalidMetadataException()
 
         metadata_keys_lower = {k.casefold() for k in metadata.keys()}
-        forbidden_keys_lower = {k.casefold() for k in settings.METADATA_FORBIDDEN_KEYS}
+        forbidden_keys_lower = {k.casefold() for k in METADATA_FORBIDDEN_KEYS}
         forbidden = metadata_keys_lower & forbidden_keys_lower
         if forbidden:
             logger.warning(
