@@ -22,6 +22,8 @@ from app.database.model import (
     ApplicationService,
     DeviceService,
 )
+from app.shared.authorization.dependencies import require_read, require_write, require_delete  # nuevo
+from app.database.model import Service  # nuevo
 
 
 class ServiceController(FullCrudApiController):
@@ -31,6 +33,13 @@ class ServiceController(FullCrudApiController):
     response_schema = ServiceResponse
     create_schema = ServiceCreate
     update_schema = ServiceUpdate
+
+    # nuevo
+    list_dependencies = [require_read(Service)]
+    retrieve_dependencies = [require_read(Service)]
+    create_dependencies = [require_write(Service)]
+    update_dependencies = [require_write(Service)]
+    delete_dependencies = [require_delete(Service)]
 
 
 service_router = ServiceController().router

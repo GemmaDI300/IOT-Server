@@ -31,6 +31,11 @@ allow(user: CurrentUser, action, _resource: Service) if
     not user.is_master and
     action in ["read", "write", "delete"];
 
+allow(user: CurrentUser, action, _resource: Role) if
+    user.account_type = "administrator" and
+    not user.is_master and
+    action in ["read", "write", "delete"];
+
 allow(user: CurrentUser, action, _resource: Ticket) if
     user.account_type = "administrator" and
     not user.is_master and
@@ -62,7 +67,14 @@ allow(user: CurrentUser, "read", _resource: Service) if
 allow(user: CurrentUser, "read", _resource: Application) if
     user.account_type = "manager";
 
+allow(user: CurrentUser, action, _resource: Role) if
+    user.account_type = "manager" and
+    action in ["read", "write"];
+
 # User
+allow(user: CurrentUser, "read", _resource: Role) if
+    user.account_type = "user";
+
 allow(user: CurrentUser, "read", _resource: Device) if
     user.account_type = "user";
 
