@@ -14,6 +14,7 @@ from app.domain.manager.controller import manager_router
 from app.domain.tickets.controller import ecosystem_ticket_router, service_ticket_router
 from app.domain.role.controller import role_router
 from app.shared.middleware.auth.human import Human
+from app.domain.payment.controller import payment_router
 
 
 @asynccontextmanager
@@ -43,4 +44,5 @@ app.include_router(service_router, prefix=api_version_v1_prefix)
 app.include_router(service_ticket_router, prefix=api_version_v1_prefix)
 app.include_router(ecosystem_ticket_router, prefix=api_version_v1_prefix)
 app.include_router(role_router, prefix=api_version_v1_prefix)
+app.include_router(payment_router, prefix=api_version_v1_prefix)
 

@@ -2,7 +2,7 @@ from enum import Enum
 from typing import Any, Optional
 from uuid import UUID
 from app.shared.base_domain.model import BaseTable
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlmodel import Field, Relationship, SQLModel, UniqueConstraint
 from app.database.format import UserPlainAttribute
 from app.domain.auth.security import get_password_hash
@@ -122,7 +122,10 @@ class User(PersonalData, table=True):
         back_populates="user",
         sa_relationship_kwargs={"lazy": "selectin"},
     )
-
+    user_services: list["UserService"] = Relationship(
+        back_populates="user",
+        sa_relationship_kwargs={"lazy": "selectin"},
+    )
 
 class Service(BaseTable, table=True):
     __tablename__ = "service"  # pyright: ignore[reportAssignmentType]
@@ -153,6 +156,10 @@ class Service(BaseTable, table=True):
         sa_relationship_kwargs={"lazy": "selectin"},
     )
     service_tickets: list["ServiceTicket"] = Relationship(
+        back_populates="service",
+        sa_relationship_kwargs={"lazy": "selectin"},
+    )
+    user_services: list["UserService"] = Relationship(
         back_populates="service",
         sa_relationship_kwargs={"lazy": "selectin"},
     )
@@ -354,5 +361,79 @@ class EcosystemTicket(BaseTable, table=True):
     )
     status: TicketStatus = Relationship(
         back_populates="ecosystem_tickets",
+        sa_relationship_kwargs={"lazy": "selectin"},
+    )
+
+
+
+
+
+
+
+class SubscriptionType(BaseTable, table=True):
+    __tablename__ = "subscription_type"  # pyright: ignore[reportAssignmentType]
+    type: str = Field(unique=True)
+    cost: float
+
+    payments: list["Payment"] = Relationship(
+        back_populates="subscription_type",
+        sa_relationship_kwargs={"lazy": "selectin"},
+    )
+
+
+class UserService(BaseTable, table=True):
+    __tablename__ = "user_service"  # pyright: ignore[reportAssignmentType]
+    __table_args__ = (UniqueConstraint("user_id", "service_id"),)
+
+    user_id: UUID = Field(foreign_key="user.id")
+    service_id: UUID = Field(foreign_key="service.id")
+    is_active: bool = Field(default=False)
+
+    user: User = Relationship(
+        back_populates="user_services",
+        sa_relationship_kwargs={"lazy": "selectin"},
+    )
+    service: Service = Relationship(
+        back_populates="user_services",
+        sa_relationship_kwargs={"lazy": "selectin"},
+    )
+    payments: list["Payment"] = Relationship(
+        back_populates="user_service",
+        sa_relationship_kwargs={"lazy": "selectin"},
+    )
+
+
+class Payment(BaseTable, table=True):
+    __tablename__ = "payment"  # pyright: ignore[reportAssignmentType]
+
+    user_service_id: UUID = Field(foreign_key="user_service.id")
+    subscription_type_id: UUID = Field(foreign_key="subscription_type.id")
+    expires_at: datetime
+
+    user_service: UserService = Relationship(
+        back_populates="payments",
+        sa_relationship_kwargs={"lazy": "selectin"},
+    )
+    subscription_type: SubscriptionType = Relationship(
+        back_populates="payments",
+        sa_relationship_kwargs={"lazy": "selectin"},
+    )
+    history: list["PaymentHistory"] = Relationship(
+        back_populates="payment",
+        sa_relationship_kwargs={"lazy": "selectin"},
+    )
+
+
+class PaymentHistory(BaseTable, table=True):
+    __tablename__ = "payment_history"  # pyright: ignore[reportAssignmentType]
+
+    payment_id: UUID = Field(foreign_key="payment.id")
+    deposit_id: str
+    amount: float
+    period_start: datetime
+    period_end: datetime
+
+    payment: Payment = Relationship(
+        back_populates="history",
         sa_relationship_kwargs={"lazy": "selectin"},
     )

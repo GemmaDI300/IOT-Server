@@ -12,6 +12,10 @@ from app.database.model import (
     Application,
     ServiceTicket,
     EcosystemTicket,
+    Payment,           
+    PaymentHistory,    
+    SubscriptionType,  
+    UserService,   
 )
 
 
@@ -32,6 +36,10 @@ def init_oso() -> Oso:
     oso.register_class(ServiceTicket)
     oso.register_class(EcosystemTicket)
     oso.register_class(ServiceTicket, name="Ticket")
+    oso.register_class(Payment)
+    oso.register_class(PaymentHistory)
+    oso.register_class(SubscriptionType)
+    oso.register_class(UserService)
     
     policy_dir = Path(__file__).parent
     policy_file = policy_dir / "policies.polar"
