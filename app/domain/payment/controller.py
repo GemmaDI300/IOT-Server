@@ -45,23 +45,6 @@ payment_router = PaymentController().router
 
 
 
-payment_router.routes = [
-    r for r in payment_router.routes
-    if not (hasattr(r, "methods") and "POST" in r.methods and r.path == "/payments/" and r.endpoint.__name__ == "create")
-]
-
-
-@payment_router.post(
-    "/",
-    response_model=PaymentResponse,
-    status_code=status.HTTP_201_CREATED,
-    tags=["Payments"],
-)
-def create_payment(service: PaymentServiceDep, payload: PaymentCreate):
-    """Crear pago, generar historial automáticamente y activar UserService."""
-    return service.create_payment(payload)
-
-
 
 
 @payment_router.get(

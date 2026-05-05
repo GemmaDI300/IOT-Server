@@ -49,7 +49,7 @@ class PaymentService(BaseService[Payment, PaymentCreate, PaymentCreate], IPaymen
 
         return now + timedelta(days=days)
 
-    def create_payment(self, payload: PaymentCreate) -> Payment:
+    def create_entity(self, payload: PaymentCreate) -> Payment:
         """
         Crear un pago + historial automático + activar acceso.
 
