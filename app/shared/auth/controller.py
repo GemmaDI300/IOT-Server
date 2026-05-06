@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Request
 
+from app.shared.auth.auth_policy import AuthMethod, validate_auth_method_for_entity
 from app.shared.auth.schemas import (
     ChangePasswordRequest,
     EntityPuzzleLoginRequest,
@@ -18,11 +19,32 @@ from app.shared.auth.service import (
     SharedAuthServiceDep,
     logout_current_token,
 )
+from app.shared.rate_limit import enforce_request_rate_limit
 
 
-auth_router = APIRouter(prefix="/auth", tags=["Auth"])
-auth_rc_router = APIRouter(prefix="/auth-rc", tags=["Auth RC"])
-auth_xmss_router = APIRouter(prefix="/auth-xmss", tags=["Auth XMSS"])
+change_password_logout_router = APIRouter(
+    prefix="/auth",
+    tags=["Change Password / Logout"],
+    dependencies=[Depends(enforce_request_rate_limit)],
+)
+auth_rc_router = APIRouter(
+    prefix="/auth-rc",
+    tags=["Auth RC"],
+    dependencies=[Depends(enforce_request_rate_limit)],
+)
+auth_xmss_router = APIRouter(
+    prefix="/auth-xmss",
+    tags=["Auth XMSS"],
+    dependencies=[Depends(enforce_request_rate_limit)],
+)
+
+
+def _validate_rc(entity_type: str) -> None:
+    validate_auth_method_for_entity(entity_type, AuthMethod.AUTH_RC.value)
+
+
+def _validate_xmss(entity_type: str) -> None:
+    validate_auth_method_for_entity(entity_type, AuthMethod.AUTH_XMSS.value)
 
 
 def _build_human_login_request(
@@ -43,6 +65,7 @@ def _build_human_xmss_challenge_request(
     return XMSSChallengeRequest(
         entity_type=entity_type,
         identifier=payload.identifier,
+        password=payload.password,
         tree_height=payload.tree_height,
     )
 
@@ -63,7 +86,7 @@ def _build_human_xmss_verify_request(
     )
 
 
-@auth_router.patch("/change-password", response_model=MessageResponse)
+@change_password_logout_router.patch("/change-password", response_model=MessageResponse)
 def change_password(
     payload: ChangePasswordRequest,
     service: SharedAuthServiceDep,
@@ -72,7 +95,7 @@ def change_password(
     return service.change_password(current, payload)
 
 
-@auth_router.post("/logout", response_model=MessageResponse)
+@change_password_logout_router.post("/logout", response_model=MessageResponse)
 async def logout(
     request: Request,
     _current: CurrentAccountDep,
@@ -80,12 +103,19 @@ async def logout(
     return await logout_current_token(request)
 
 
+# ============================================================
+# AUTH RC - LOGIN POR ENTIDAD HUMANA
+# ============================================================
+
 @auth_rc_router.post("/user/login", response_model=TokenResponse)
 def login_user_rc(
     payload: HumanScopedLoginRequest,
     service: SharedAuthServiceDep,
 ):
-    return service.login_human_rc(_build_human_login_request("user", payload))
+    _validate_rc("user")
+    return service.login_human_rc(
+        _build_human_login_request("user", payload)
+    )
 
 
 @auth_rc_router.post("/manager/login", response_model=TokenResponse)
@@ -93,7 +123,10 @@ def login_manager_rc(
     payload: HumanScopedLoginRequest,
     service: SharedAuthServiceDep,
 ):
-    return service.login_human_rc(_build_human_login_request("manager", payload))
+    _validate_rc("manager")
+    return service.login_human_rc(
+        _build_human_login_request("manager", payload)
+    )
 
 
 @auth_rc_router.post("/admin/login", response_model=TokenResponse)
@@ -101,6 +134,7 @@ def login_admin_rc(
     payload: HumanScopedLoginRequest,
     service: SharedAuthServiceDep,
 ):
+    _validate_rc("administrator")
     return service.login_human_rc(
         _build_human_login_request("administrator", payload),
         expected_is_master=False,
@@ -112,17 +146,23 @@ def login_master_rc(
     payload: HumanScopedLoginRequest,
     service: SharedAuthServiceDep,
 ):
+    _validate_rc("administrator")
     return service.login_human_rc(
         _build_human_login_request("administrator", payload),
         expected_is_master=True,
     )
 
 
+# ============================================================
+# AUTH RC - DISPOSITIVOS Y APLICACIONES
+# ============================================================
+
 @auth_rc_router.post("/devices/login", response_model=TokenResponse)
 def login_device_rc(
     payload: EntityPuzzleLoginRequest,
     service: SharedAuthServiceDep,
 ):
+    _validate_rc("device")
     return service.login_device_rc(payload)
 
 
@@ -131,14 +171,20 @@ def login_application_rc(
     payload: EntityPuzzleLoginRequest,
     service: SharedAuthServiceDep,
 ):
+    _validate_rc("application")
     return service.login_application_rc(payload)
 
+
+# ============================================================
+# AUTH XMSS - USER
+# ============================================================
 
 @auth_xmss_router.post("/user/challenge", response_model=XMSSChallengeResponse)
 def create_user_xmss_challenge(
     payload: HumanXMSSChallengeRequest,
     service: SharedAuthServiceDep,
 ):
+    _validate_xmss("user")
     return service.create_xmss_challenge(
         _build_human_xmss_challenge_request("user", payload)
     )
@@ -149,14 +195,22 @@ def verify_user_xmss(
     payload: HumanXMSSVerifyRequest,
     service: SharedAuthServiceDep,
 ):
-    return service.verify_xmss(_build_human_xmss_verify_request("user", payload))
+    _validate_xmss("user")
+    return service.verify_xmss(
+        _build_human_xmss_verify_request("user", payload)
+    )
 
+
+# ============================================================
+# AUTH XMSS - MANAGER
+# ============================================================
 
 @auth_xmss_router.post("/manager/challenge", response_model=XMSSChallengeResponse)
 def create_manager_xmss_challenge(
     payload: HumanXMSSChallengeRequest,
     service: SharedAuthServiceDep,
 ):
+    _validate_xmss("manager")
     return service.create_xmss_challenge(
         _build_human_xmss_challenge_request("manager", payload)
     )
@@ -167,14 +221,22 @@ def verify_manager_xmss(
     payload: HumanXMSSVerifyRequest,
     service: SharedAuthServiceDep,
 ):
-    return service.verify_xmss(_build_human_xmss_verify_request("manager", payload))
+    _validate_xmss("manager")
+    return service.verify_xmss(
+        _build_human_xmss_verify_request("manager", payload)
+    )
 
+
+# ============================================================
+# AUTH XMSS - ADMIN NORMAL
+# ============================================================
 
 @auth_xmss_router.post("/admin/challenge", response_model=XMSSChallengeResponse)
 def create_admin_xmss_challenge(
     payload: HumanXMSSChallengeRequest,
     service: SharedAuthServiceDep,
 ):
+    _validate_xmss("administrator")
     return service.create_xmss_challenge(
         _build_human_xmss_challenge_request("administrator", payload),
         expected_is_master=False,
@@ -186,17 +248,23 @@ def verify_admin_xmss(
     payload: HumanXMSSVerifyRequest,
     service: SharedAuthServiceDep,
 ):
+    _validate_xmss("administrator")
     return service.verify_xmss(
         _build_human_xmss_verify_request("administrator", payload),
         expected_is_master=False,
     )
 
 
+# ============================================================
+# AUTH XMSS - MASTER ADMIN
+# ============================================================
+
 @auth_xmss_router.post("/master/challenge", response_model=XMSSChallengeResponse)
 def create_master_xmss_challenge(
     payload: HumanXMSSChallengeRequest,
     service: SharedAuthServiceDep,
 ):
+    _validate_xmss("administrator")
     return service.create_xmss_challenge(
         _build_human_xmss_challenge_request("administrator", payload),
         expected_is_master=True,
@@ -208,17 +276,23 @@ def verify_master_xmss(
     payload: HumanXMSSVerifyRequest,
     service: SharedAuthServiceDep,
 ):
+    _validate_xmss("administrator")
     return service.verify_xmss(
         _build_human_xmss_verify_request("administrator", payload),
         expected_is_master=True,
     )
 
 
+# ============================================================
+# AUTH XMSS - DEVICES
+# ============================================================
+
 @auth_xmss_router.post("/devices/challenge", response_model=XMSSChallengeResponse)
 def create_device_xmss_challenge(
     payload: XMSSChallengeRequest,
     service: SharedAuthServiceDep,
 ):
+    _validate_xmss("device")
     if payload.entity_type != "device":
         from app.shared.exceptions import BadRequestException
 
@@ -232,6 +306,7 @@ def verify_device_xmss(
     payload: XMSSVerifyRequest,
     service: SharedAuthServiceDep,
 ):
+    _validate_xmss("device")
     if payload.entity_type != "device":
         from app.shared.exceptions import BadRequestException
 
@@ -240,11 +315,16 @@ def verify_device_xmss(
     return service.verify_xmss(payload)
 
 
+# ============================================================
+# AUTH XMSS - APPLICATIONS
+# ============================================================
+
 @auth_xmss_router.post("/applications/challenge", response_model=XMSSChallengeResponse)
 def create_application_xmss_challenge(
     payload: XMSSChallengeRequest,
     service: SharedAuthServiceDep,
 ):
+    _validate_xmss("application")
     if payload.entity_type != "application":
         from app.shared.exceptions import BadRequestException
 
@@ -258,6 +338,7 @@ def verify_application_xmss(
     payload: XMSSVerifyRequest,
     service: SharedAuthServiceDep,
 ):
+    _validate_xmss("application")
     if payload.entity_type != "application":
         from app.shared.exceptions import BadRequestException
 

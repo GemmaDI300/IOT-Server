@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
 from typing import Annotated, Literal
 from uuid import UUID
 
@@ -11,6 +10,7 @@ from sqlmodel import Session
 
 from app.config import settings
 from app.database import SessionDep
+from app.database.model import SensitiveData
 from app.shared.auth.repository import AuthRepository
 from app.shared.auth.schemas import (
     ChangePasswordRequest,
@@ -95,6 +95,10 @@ class SharedAuthService:
             method=ApplicationXMSSAuth(),
         )
 
+    # ============================================================
+    # AUTH RC - HUMAN LOGIN
+    # ============================================================
+
     def login_human_rc(
         self,
         payload: HumanLoginRequest,
@@ -138,6 +142,10 @@ class SharedAuthService:
             email=resolved.sensitive_data.email,
             is_master=resolved.is_master,
         )
+
+    # ============================================================
+    # AUTH RC - DEVICE / APPLICATION
+    # ============================================================
 
     def login_device_rc(self, payload: EntityPuzzleLoginRequest) -> TokenResponse:
         device = self.repository.get_device_by_identifier(payload.identifier)
@@ -187,19 +195,29 @@ class SharedAuthService:
             is_master=False,
         )
 
+    # ============================================================
+    # AUTH XMSS - CHALLENGE
+    # ============================================================
+
     def create_xmss_challenge(
         self,
         payload: XMSSChallengeRequest,
         expected_is_master: bool | None = None,
     ) -> XMSSChallengeResponse:
-        entity = self._get_entity_for_xmss(
-            entity_type=payload.entity_type,
-            identifier=payload.identifier,
-            expected_is_master=expected_is_master,
-        )
+        if payload.entity_type in {"administrator", "manager", "user"}:
+            entity = self._validate_human_xmss_password_and_get_entity(
+                payload=payload,
+                expected_is_master=expected_is_master,
+            )
+        else:
+            entity = self._get_entity_for_xmss(
+                entity_type=payload.entity_type,
+                identifier=payload.identifier,
+                expected_is_master=expected_is_master,
+            )
 
-        if entity is None:
-            raise NotFoundException(payload.entity_type, payload.identifier)
+            if entity is None:
+                raise NotFoundException(payload.entity_type, payload.identifier)
 
         state = self.repository.get_xmss_state(entity)
 
@@ -219,6 +237,52 @@ class SharedAuthService:
             )
 
         return XMSSChallengeResponse(**challenge_data)
+
+    def _validate_human_xmss_password_and_get_entity(
+        self,
+        *,
+        payload: XMSSChallengeRequest,
+        expected_is_master: bool | None,
+    ):
+        if not payload.password:
+            raise BadRequestException("Password is required for human XMSS login")
+
+        resolved = self.repository.get_human_by_email(
+            email=payload.identifier,
+            entity_type=payload.entity_type,
+        )
+
+        if resolved is None:
+            raise BadRequestException("Invalid credentials")
+
+        self._validate_expected_admin_scope(
+            entity_type=payload.entity_type,
+            is_master=resolved.is_master,
+            expected_is_master=expected_is_master,
+        )
+
+        method = self.selector.resolve(
+            auth_type="auth_rc",
+            entity_type=payload.entity_type,
+        )
+
+        result = method.authenticate(
+            resolved.account,
+            {
+                "account_type": resolved.account_type,
+                "sensitive_data": resolved.sensitive_data,
+                "password": payload.password,
+            },
+        )
+
+        if not result.get("valid"):
+            raise BadRequestException(result.get("error", "Invalid credentials"))
+
+        return resolved.account
+
+    # ============================================================
+    # AUTH XMSS - VERIFY
+    # ============================================================
 
     def verify_xmss(
         self,
@@ -280,6 +344,10 @@ class SharedAuthService:
             is_master=is_master,
         )
 
+    # ============================================================
+    # PASSWORD
+    # ============================================================
+
     def change_password(
         self,
         current: CurrentAccount,
@@ -288,10 +356,7 @@ class SharedAuthService:
         if current.sensitive_data_id is None:
             raise BadRequestException("This entity does not use password authentication")
 
-        sensitive_data = self.session.get(
-            __import__("app.database.model", fromlist=["SensitiveData"]).SensitiveData,
-            current.sensitive_data_id,
-        )
+        sensitive_data = self.session.get(SensitiveData, current.sensitive_data_id)
 
         if sensitive_data is None:
             raise BadRequestException("Associated account was not found")
@@ -299,12 +364,21 @@ class SharedAuthService:
         if not verify_password(payload.current_password, sensitive_data.password_hash):
             raise BadRequestException("Current password is incorrect")
 
+        if verify_password(payload.new_password, sensitive_data.password_hash):
+            raise BadRequestException(
+                "New password must be different from current password"
+            )
+
         sensitive_data.password = payload.new_password
         self.session.add(sensitive_data)
         self.session.commit()
         self.session.refresh(sensitive_data)
 
         return MessageResponse(message="Password updated successfully")
+
+    # ============================================================
+    # HELPERS
+    # ============================================================
 
     def _issue_token(
         self,

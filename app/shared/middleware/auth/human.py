@@ -19,12 +19,27 @@ PUBLIC_PATHS = {
     "/openapi.json",
     "/redoc",
 
-    "/api/v1/auth-rc/humans/login",
+    # Auth RC - humanos separados
+    "/api/v1/auth-rc/user/login",
+    "/api/v1/auth-rc/manager/login",
+    "/api/v1/auth-rc/admin/login",
+    "/api/v1/auth-rc/master/login",
+
+    # Auth RC - entidades no humanas
     "/api/v1/auth-rc/devices/login",
     "/api/v1/auth-rc/applications/login",
 
-    "/api/v1/auth-xmss/humans/challenge",
-    "/api/v1/auth-xmss/humans/verify",
+    # Auth XMSS - humanos separados
+    "/api/v1/auth-xmss/user/challenge",
+    "/api/v1/auth-xmss/user/verify",
+    "/api/v1/auth-xmss/manager/challenge",
+    "/api/v1/auth-xmss/manager/verify",
+    "/api/v1/auth-xmss/admin/challenge",
+    "/api/v1/auth-xmss/admin/verify",
+    "/api/v1/auth-xmss/master/challenge",
+    "/api/v1/auth-xmss/master/verify",
+
+    # Auth XMSS - entidades no humanas
     "/api/v1/auth-xmss/devices/challenge",
     "/api/v1/auth-xmss/devices/verify",
     "/api/v1/auth-xmss/applications/challenge",

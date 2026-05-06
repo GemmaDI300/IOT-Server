@@ -42,6 +42,16 @@ class HumanLoginRequest(BaseModel):
 
 
 class HumanScopedLoginRequest(BaseModel):
+    """
+    Schema usado por endpoints separados:
+    /auth-rc/user/login
+    /auth-rc/manager/login
+    /auth-rc/admin/login
+    /auth-rc/master/login
+
+    Aquí no se pide entity_type porque el endpoint ya define la entidad.
+    """
+
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
     email: str = Field(min_length=6, max_length=254)
@@ -88,17 +98,41 @@ class ChangePasswordRequest(BaseModel):
 
 
 class XMSSChallengeRequest(BaseModel):
+    """
+    Schema interno/general para challenge XMSS.
+
+    Para humanos:
+    - entity_type: administrator / manager / user
+    - identifier: email
+    - password: requerido
+
+    Para devices/applications:
+    - password puede ir None
+    """
+
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
     entity_type: EntityType
     identifier: str = Field(min_length=1)
+    password: str | None = Field(default=None, min_length=8, max_length=128)
     tree_height: int = Field(default=4, ge=2, le=16)
 
 
 class HumanXMSSChallengeRequest(BaseModel):
+    """
+    Schema para endpoints separados:
+    /auth-xmss/user/challenge
+    /auth-xmss/manager/challenge
+    /auth-xmss/admin/challenge
+    /auth-xmss/master/challenge
+
+    Aquí no se pide entity_type porque el endpoint ya define la entidad.
+    """
+
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
     identifier: str = Field(min_length=1)
+    password: str = Field(min_length=8, max_length=128)
     tree_height: int = Field(default=4, ge=2, le=16)
 
     @field_validator("identifier")
@@ -128,6 +162,13 @@ class XMSSChallengeResponse(BaseModel):
 
 
 class XMSSVerifyRequest(BaseModel):
+    """
+    Schema general para verify XMSS.
+
+    Para endpoints de device/application sí se manda entity_type.
+    Para endpoints separados de humanos se construye internamente desde el controller.
+    """
+
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
     entity_type: EntityType
@@ -141,6 +182,16 @@ class XMSSVerifyRequest(BaseModel):
 
 
 class HumanXMSSVerifyRequest(BaseModel):
+    """
+    Schema para:
+    /auth-xmss/user/verify
+    /auth-xmss/manager/verify
+    /auth-xmss/admin/verify
+    /auth-xmss/master/verify
+
+    No lleva entity_type porque el endpoint ya define si es user, manager, admin o master.
+    """
+
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
     identifier: str
