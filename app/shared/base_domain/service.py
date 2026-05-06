@@ -1,5 +1,6 @@
 from typing import ClassVar, Generic, TypeVar
 from uuid import UUID
+import json
 from pydantic import BaseModel
 from sqlmodel import Session
 from app.shared.base_domain.model import BaseTable
@@ -14,6 +15,24 @@ from loguru import logger
 T = TypeVar("T", bound=BaseTable)
 P_create = TypeVar("P_create", bound=BaseModel)
 P_update = TypeVar("P_update", bound=BaseModel)
+
+_AUDIT_EXCLUDED_FIELDS = {
+    "id", "created_at", "updated_at",
+    "password_hash",
+    "encryption_key",
+    "curp",
+    "rfc",
+    "api_key",
+}
+
+_AUDIT_EXCLUDED_FIELDS = {
+    "id", "created_at", "updated_at",
+    "password_hash",
+    "encryption_key",
+    "curp",
+    "rfc",
+    "api_key",
+}
 
 
 class IBaseService(ABC, Generic[T, P_create, P_update]):
@@ -83,11 +102,10 @@ class BaseService(IBaseService[T, P_create, P_update], Generic[T, P_create, P_up
         if action == "update" and old:
             changes = {}
             new = entity.model_dump()
-            for key in [k for k in old if k not in ("id", "created_at", "updated_at")]:
+            for key in [k for k in old if k not in _AUDIT_EXCLUDED_FIELDS]:
                 if old.get(key) != new.get(key):
                     changes[key] = {"from": str(old[key]), "to": str(new[key])}
             if changes:
-                import json
                 details = json.dumps(changes)
 
         entry = self.audit.log(

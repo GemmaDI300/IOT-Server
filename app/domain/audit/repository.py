@@ -33,9 +33,9 @@ class AuditRepository:
         return entry
 
     def get_by_account(self, account_id: UUID, offset: int = 0, limit: int = 20) -> tuple[list[AuditLog], int]:
-        total = self.session.exec(
+        total = self.session.scalar(
             select(func.count(AuditLog.id)).where(AuditLog.account_id == account_id)
-        ).scalar_one()
+        ) or 0
         items = self.session.exec(
             select(AuditLog)
             .where(AuditLog.account_id == account_id)
