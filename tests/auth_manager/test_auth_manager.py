@@ -1,3 +1,4 @@
+
 """Tests para AuthManager — flujo de autenticación."""
 import base64
 import pytest
