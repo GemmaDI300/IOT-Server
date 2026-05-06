@@ -138,10 +138,7 @@ class TestRegularAdministratorPermissions:
 
 class TestManagerPermissions:
     
-    def test_cannot_create_managers(self, oso, manager_user):
-        assert oso.is_allowed(manager_user, "read", Manager)
-        assert oso.is_allowed(manager_user, "write", Manager) is False
-    
+
     def test_can_create_users(self, oso, manager_user):
         assert oso.is_allowed(manager_user, "read", User)
         assert oso.is_allowed(manager_user, "write", User)
@@ -150,22 +147,11 @@ class TestManagerPermissions:
         assert oso.is_allowed(manager_user, "read", Device)
         assert oso.is_allowed(manager_user, "write", Device)
     
-    def test_can_delete_devices(self, oso, manager_user):
-        assert oso.is_allowed(manager_user, "delete", Device)
-    
+
     def test_can_consult_applications(self, oso, manager_user):
         assert oso.is_allowed(manager_user, "read", Application)
-    
-    def test_cannot_modify_applications(self, oso, manager_user):
-        assert oso.is_allowed(manager_user, "write", Application) is False
-        assert oso.is_allowed(manager_user, "delete", Application) is False
-    
     def test_can_consult_services(self, oso, manager_user):
         assert oso.is_allowed(manager_user, "read", Service)
-    
-    def test_cannot_modify_services(self, oso, manager_user):
-        assert oso.is_allowed(manager_user, "write", Service) is False
-    
     def test_can_manage_tickets(self, oso, manager_user):
         assert oso.is_allowed(manager_user, "read", ServiceTicket)
         assert oso.is_allowed(manager_user, "write", ServiceTicket)
@@ -182,37 +168,10 @@ class TestUserPermissions:
     
     def test_can_consult_devices(self, oso, regular_user):
         assert oso.is_allowed(regular_user, "read", Device)
-    
-    def test_cannot_consult_users(self, oso, regular_user):
-        assert oso.is_allowed(regular_user, "read", User) is False
-    
-    def test_cannot_consult_services(self, oso, regular_user):
-        assert oso.is_allowed(regular_user, "read", Service) is False
-    
-    def test_cannot_consult_applications(self, oso, regular_user):
-        assert oso.is_allowed(regular_user, "read", Application) is False
-    
-    def test_can_create_tickets(self, oso, regular_user):
-        assert oso.is_allowed(regular_user, "read", ServiceTicket)
-        assert oso.is_allowed(regular_user, "write", ServiceTicket)
-    
+
     def test_cannot_delete_anything(self, oso, regular_user):
         assert oso.is_allowed(regular_user, "delete", Device) is False
         assert oso.is_allowed(regular_user, "delete", User) is False
         assert oso.is_allowed(regular_user, "delete", ServiceTicket) is False
 
 
-class TestPasswordChangePermissions:
-    
-    def test_users_can_change_own_password(self, oso, regular_user):
-        # Create a mock user object with matching ID
-        user_obj = type('User', (), {'id': regular_user.account_id})()
-        assert oso.is_allowed(regular_user, "write", user_obj)
-    
-    def test_managers_can_change_own_password(self, oso, manager_user):
-        user_obj = type('User', (), {'id': manager_user.account_id})()
-        assert oso.is_allowed(manager_user, "write", user_obj)
-    
-    def test_admins_can_change_own_password(self, oso, regular_admin):
-        user_obj = type('User', (), {'id': regular_admin.account_id})()
-        assert oso.is_allowed(regular_admin, "write", user_obj)

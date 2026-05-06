@@ -31,7 +31,6 @@ def init_oso() -> Oso:
     oso.register_class(Application)
     oso.register_class(ServiceTicket)
     oso.register_class(EcosystemTicket)
-    oso.register_class(ServiceTicket, name="Ticket")
     
     policy_dir = Path(__file__).parent
     policy_file = policy_dir / "policies.polar"
