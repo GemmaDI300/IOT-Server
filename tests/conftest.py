@@ -10,6 +10,7 @@ from app.config import settings
 from app.database import SessionDep, get_session
 import app.database as database_module
 import app.shared.middleware.auth.human as human_middleware
+from app.shared.rate_limit import enforce_request_rate_limit
 from app.database.model import (
     NonCriticalPersonalData,
     SensitiveData,
@@ -17,7 +18,7 @@ from app.database.model import (
     User,
     Manager,
 )
-from app.domain.auth.security import get_password_hash
+from app.shared.auth.security import get_password_hash
 from copy import deepcopy
 
 
@@ -79,6 +80,13 @@ def client(db):
     database_module.engine = original_database_engine
     human_middleware.engine = original_human_engine
     app.dependency_overrides.clear()
+
+
+@pytest.fixture(autouse=True)
+def disable_rate_limit_dependency():
+    app.dependency_overrides[enforce_request_rate_limit] = lambda: None
+    yield
+    app.dependency_overrides.pop(enforce_request_rate_limit, None)
 
 
 @pytest.fixture(name="master_admin_account")
