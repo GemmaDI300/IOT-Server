@@ -1,10 +1,10 @@
-from contextvars import ContextVar
-from typing import TypeVar, Annotated
+from typing import TypeVar
+
 from fastapi import Depends, HTTPException, status
 
 from app.shared.authorization.oso_config import get_oso
 from app.shared.authorization.models import CurrentUser
-from app.domain.auth.service import CurrentAccountDep
+from app.shared.auth.service import CurrentAccountDep
 
 
 _current_user_ctx: ContextVar[CurrentUser | None] = ContextVar(
@@ -30,7 +30,6 @@ def require_oso_permission(action: str, resource_type: type[T]):
                 detail=f"Insufficient permissions: {action} on {resource_type.__name__}",
             )
 
-        _current_user_ctx.set(user)
         return user
 
     return Depends(check_permission)
@@ -50,4 +49,3 @@ def require_delete(resource_type: type[T]):
 
 def require_administer(resource_type: type[T]):
     return require_oso_permission("administer", resource_type)
-

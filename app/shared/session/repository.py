@@ -18,7 +18,11 @@ class SessionRepository:
         self.valkey_url = valkey_url
         self.client: Optional[valkey.Valkey] = None
 
-    async def connect(self) -> None:
+    @staticmethod
+    def _rate_limit_storage_key(rate_limit_key: str) -> str:
+        return f"rate_limit:{rate_limit_key}"
+    
+    async def connect(self):
         if not self.client:
             self.client = await valkey.from_url(
                 self.valkey_url,
@@ -112,12 +116,12 @@ class SessionRepository:
 
     async def increment_rate_limit(
         self,
-        ip_address: str,
+        rate_limit_key: str,
         window_seconds: int = 900,
     ) -> int:
         await self.connect()
 
-        key = f"rate_limit:{ip_address}"
+        key = self._rate_limit_storage_key(rate_limit_key)
         count = await self.client.incr(key)
 
         if count == 1:
@@ -125,21 +129,29 @@ class SessionRepository:
 
         return count
 
-    async def get_rate_limit(self, ip_address: str) -> int:
+    async def get_rate_limit(self, rate_limit_key: str) -> int:
         await self.connect()
 
-        key = f"rate_limit:{ip_address}"
+        key = self._rate_limit_storage_key(rate_limit_key)
         count = await self.client.get(key)
+
         return int(count) if count else 0
 
-    async def reset_rate_limit(self, ip_address: str) -> None:
+    async def get_rate_limit_ttl(self, rate_limit_key: str) -> int:
         await self.connect()
 
-        key = f"rate_limit:{ip_address}"
+        key = self._rate_limit_storage_key(rate_limit_key)
+        ttl = await self.client.ttl(key)
+        return max(int(ttl), 0)
+
+    async def reset_rate_limit(self, rate_limit_key: str) -> None:
+        await self.connect()
+
+        key = self._rate_limit_storage_key(rate_limit_key)
         await self.client.delete(key)
 
-    async def is_rate_limited(self, ip_address: str, max_attempts: int = 3) -> bool:
-        count = await self.get_rate_limit(ip_address)
+    async def is_rate_limited(self, rate_limit_key: str, max_attempts: int = 3) -> bool:
+        count = await self.get_rate_limit(rate_limit_key)
         return count >= max_attempts
 
     # ==============================================================

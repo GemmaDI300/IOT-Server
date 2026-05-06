@@ -16,10 +16,13 @@ class Settings(BaseSettings):
     VALKEY_URL: str = "redis://localhost:6379/0"
     ENCRYPTION_KEY: str = "change-me-32-byte-base64-key-here"  # Base64 encoded 32-byte key
 
-    # Entity Session Configuration
-    SESSION_TTL_SECONDS: int = 259_200  # 3 days
-    METADATA_MAX_KEYS: int = 20
-    METADATA_MAX_SIZE_BYTES: int = 4096
+    # Authentication method by deployment
+    # Allowed values: auth_rc, auth_xmss
+    AUTH_ADMINISTRATOR_METHOD: str = "auth_rc"
+    AUTH_MANAGER_METHOD: str = "auth_rc"
+    AUTH_USER_METHOD: str = "auth_rc"
+    AUTH_DEVICE_METHOD: str = "auth_rc"
+    AUTH_APPLICATION_METHOD: str = "auth_rc"
 
     model_config = SettingsConfigDict(
         env_file=".env",

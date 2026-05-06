@@ -1,16 +1,19 @@
 from enum import Enum
 from typing import Any, Optional
 from uuid import UUID
-from app.shared.base_domain.model import BaseTable
 from datetime import datetime
-from sqlmodel import Field, Relationship, SQLModel, UniqueConstraint
-from app.database.format import UserPlainAttribute
-from app.domain.auth.security import get_password_hash
 import secrets
+
+from sqlmodel import Field, Relationship, SQLModel, UniqueConstraint
+
+from app.shared.base_domain.model import BaseTable
+from app.database.format import UserPlainAttribute
+from app.shared.auth.security import get_password_hash
 
 
 class NonCriticalPersonalData(BaseTable, table=True):
     __tablename__ = "non_critical_personal_data"  # pyright: ignore[reportAssignmentType]
+
     first_name: str
     last_name: str
     second_last_name: str | None = None
@@ -32,7 +35,8 @@ class SensitiveData(BaseTable, table=True):
     __tablename__ = "sensitive_data"  # pyright: ignore[reportAssignmentType]
 
     non_critical_data_id: UUID = Field(
-        foreign_key="non_critical_personal_data.id", unique=True
+        foreign_key="non_critical_personal_data.id",
+        unique=True,
     )
     email: str = Field(unique=True)
     password_hash: str
@@ -62,7 +66,12 @@ class SensitiveData(BaseTable, table=True):
             data["password_hash"] = get_password_hash(password)
         super().__init__(**data)
 
-    def sqlmodel_update(self, obj: dict[str, Any], *, update: dict[str, Any] | None = None) -> None:
+    def sqlmodel_update(
+        self,
+        obj: dict[str, Any],
+        *,
+        update: dict[str, Any] | None = None,
+    ) -> None:
         password = obj.pop("password", None)
         super().sqlmodel_update(obj, update=update)
         if password is not None:
@@ -82,10 +91,17 @@ class SensitiveData(BaseTable, table=True):
 class PersonalData(BaseTable, UserPlainAttribute):
     sensitive_data_id: UUID = Field(foreign_key="sensitive_data.id", unique=True)
 
+    # Estado XMSS para humanos: Administrator, Manager y User.
+    xmss_public_root: str | None = None
+    xmss_current_index: int = Field(default=0)
+    xmss_tree_height: int = Field(default=4)
+
 
 class Administrator(PersonalData, table=True):
     __tablename__ = "administrator"  # pyright: ignore[reportAssignmentType]
+
     is_master: bool = Field(default=False)
+
     sensitive_data: SensitiveData = Relationship(
         back_populates="administrator",
         sa_relationship_kwargs={"lazy": "selectin"},
@@ -102,6 +118,7 @@ class Administrator(PersonalData, table=True):
 
 class Manager(PersonalData, table=True):
     __tablename__ = "manager"  # pyright: ignore[reportAssignmentType]
+
     sensitive_data: SensitiveData = Relationship(
         back_populates="manager",
         sa_relationship_kwargs={"lazy": "selectin"},
@@ -114,6 +131,7 @@ class Manager(PersonalData, table=True):
 
 class User(PersonalData, table=True):
     __tablename__ = "user"  # pyright: ignore[reportAssignmentType]
+
     sensitive_data: SensitiveData = Relationship(
         back_populates="user",
         sa_relationship_kwargs={"lazy": "selectin"},
@@ -161,8 +179,10 @@ class Service(BaseTable, table=True):
 class ManagerService(BaseTable, table=True):
     __tablename__ = "manager_service"  # pyright: ignore[reportAssignmentType]
     __table_args__ = (UniqueConstraint("manager_id", "service_id"),)
+
     manager_id: UUID = Field(foreign_key="manager.id")
     service_id: UUID = Field(foreign_key="service.id")
+
     manager: Manager = Relationship(
         back_populates="manager_services",
         sa_relationship_kwargs={"lazy": "selectin"},
@@ -176,6 +196,7 @@ class ManagerService(BaseTable, table=True):
         sa_relationship_kwargs={"lazy": "selectin"},
     )
 
+
 def get_api_key():
     return secrets.token_hex(32)
 
@@ -184,13 +205,18 @@ class Application(BaseTable, table=True):
     __tablename__ = "application"  # pyright: ignore[reportAssignmentType]
 
     name: str = Field(unique=True)
-    version: str 
-    url: str 
-    description: str 
+    version: str
+    url: str
+    description: str
     api_key: str = Field(default_factory=get_api_key, unique=True, index=True)
     port: int | None = Field(default=None)
     administrator_id: UUID = Field(foreign_key="administrator.id")
     is_active: bool = Field(default=True)
+
+    # Estado XMSS para aplicaciones.
+    xmss_public_root: str | None = None
+    xmss_current_index: int = Field(default=0)
+    xmss_tree_height: int = Field(default=4)
 
     registered_by: Administrator = Relationship(
         back_populates="registered_applications",
@@ -205,6 +231,7 @@ class Application(BaseTable, table=True):
 class ApplicationService(BaseTable, table=True):
     __tablename__ = "application_service"  # pyright: ignore[reportAssignmentType]
     __table_args__ = (UniqueConstraint("application_id", "service_id"),)
+
     application_id: UUID = Field(foreign_key="application.id")
     service_id: UUID = Field(foreign_key="service.id")
 
@@ -230,6 +257,11 @@ class Device(BaseTable, table=True):
     encryption_key: str | None = None
     is_active: bool = Field(default=True)
 
+    # Estado XMSS para dispositivos.
+    xmss_public_root: str | None = None
+    xmss_current_index: int = Field(default=0)
+    xmss_tree_height: int = Field(default=4)
+
     device_services: list["DeviceService"] = Relationship(
         back_populates="device",
         sa_relationship_kwargs={"lazy": "selectin"},
@@ -242,6 +274,7 @@ class DeviceService(BaseTable, table=True):
 
     device_id: UUID = Field(foreign_key="device.id")
     service_id: UUID = Field(foreign_key="service.id")
+
     device: Device = Relationship(
         back_populates="device_services",
         sa_relationship_kwargs={"lazy": "selectin"},
@@ -272,6 +305,16 @@ class Role(BaseTable, table=True):
 
 
 
+    role_id: UUID = Field(foreign_key="role.id", unique=True)
+    can_read: bool = Field(default=False)
+    can_write: bool = Field(default=False)
+    can_delete: bool = Field(default=False)
+    can_administer: bool = Field(default=False)
+
+    role: Role = Relationship(
+        back_populates="permission",
+        sa_relationship_kwargs={"lazy": "selectin"},
+    )
 
 
 class UserRole(BaseTable, table=True):
@@ -280,6 +323,7 @@ class UserRole(BaseTable, table=True):
 
     user_id: UUID = Field(foreign_key="user.id")
     role_id: UUID = Field(foreign_key="role.id")
+
     user: User = Relationship(
         back_populates="user_roles",
         sa_relationship_kwargs={"lazy": "selectin"},
@@ -299,6 +343,7 @@ class TicketStatus(BaseTable, table=True):
 
     name: str = Field(unique=True)
     description: str | None = None
+
     service_tickets: list["ServiceTicket"] = Relationship(
         back_populates="status",
         sa_relationship_kwargs={"lazy": "selectin"},
@@ -325,6 +370,7 @@ class ServiceTicket(BaseTable, table=True):
     status_id: int = Field(foreign_key="ticket_status.id")
     service_id: UUID = Field(foreign_key="service.id")
     priority: Priority = Field(default=Priority.medium)
+
     user_role: UserRole = Relationship(
         back_populates="service_tickets",
         sa_relationship_kwargs={"lazy": "selectin"},
@@ -356,15 +402,3 @@ class EcosystemTicket(BaseTable, table=True):
         back_populates="ecosystem_tickets",
         sa_relationship_kwargs={"lazy": "selectin"},
     )
-
-
-class AuditLog(BaseTable, table=True):
-    __tablename__ = "audit_log"
-
-    account_id: UUID
-    account_type: str
-    action: str
-    resource_type: str
-    resource_id: UUID | None = None
-    details: str | None = None
-    ip_address: str | None = None

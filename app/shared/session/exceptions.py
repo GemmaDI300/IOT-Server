@@ -32,12 +32,13 @@ class InvalidRefreshTokenException(HTTPException):
 
 
 class RateLimitExceededException(HTTPException):
-    """Authentication rate limit exceeded."""
+    """Raised when rate limit is exceeded."""
 
     def __init__(self, retry_after: int = 900):
+        unit = "second" if retry_after == 1 else "seconds"
         super().__init__(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail=f"Too many failed login attempts. Try again in {retry_after // 60} minutes.",
+            detail=f"Too many requests. Try again in {retry_after} {unit}.",
             headers={"Retry-After": str(retry_after)},
         )
 

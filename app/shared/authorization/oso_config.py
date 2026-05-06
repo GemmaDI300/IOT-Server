@@ -4,6 +4,7 @@ from oso import Oso
 from app.shared.authorization.models import CurrentUser
 from app.database.model import (
     Device,
+    Role,
     User,
     Administrator,
     Manager,
@@ -23,6 +24,7 @@ def init_oso() -> Oso:
     
     oso.register_class(CurrentUser)
     oso.register_class(Device)
+    oso.register_class(Role)
     oso.register_class(User)
     oso.register_class(Administrator)
     oso.register_class(Manager)

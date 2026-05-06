@@ -6,6 +6,9 @@ from dataclasses import dataclass, field
 from unittest.mock import AsyncMock, MagicMock
 from uuid import UUID, uuid4
 
+from app.shared.middleware.auth.auth_manager.application import ApplicationAuthManager
+from app.shared.middleware.auth.auth_manager.device import DeviceAuthManager
+from app.shared.middleware.auth.auth_manager.human import HumanAuthManager
 from app.shared.middleware.auth.auth_manager.manager import AuthManager
 
 
@@ -61,6 +64,13 @@ class StubAuthManager(AuthManager[FakeEntity]):
         "success": FakeAuthSuccess,
         "fail": FakeAuthFail,
     }
+
+    def _get_entity_id(self, request_data) -> UUID:
+        return request_data.entity_id
+
+
+class StubHumanAuthManager(HumanAuthManager[FakeEntity]):
+    repository_class = FakeRepository
 
     def _get_entity_id(self, request_data) -> UUID:
         return request_data.entity_id
@@ -196,6 +206,22 @@ class TestAuthManagerInvalidType:
     def test_invalid_auth_type_raises(self, mock_session_service):
         with pytest.raises(ValueError, match="no disponible"):
             StubAuthManager(None, mock_session_service, auth_type="xyz")
+
+    def test_canonical_auth_rc_alias_resolves(self, mock_session_service):
+        manager = StubHumanAuthManager(None, mock_session_service, auth_type="auth_rc")
+        assert manager._authenticator.get_auth_type() == "auth_rc"
+
+    def test_canonical_auth_xmss_alias_resolves(self, mock_session_service):
+        manager = StubHumanAuthManager(None, mock_session_service, auth_type="auth_xmss")
+        assert manager._authenticator.get_auth_type() == "auth_xmss"
+
+    def test_device_manager_registers_xmss(self, mock_session_service):
+        manager = DeviceAuthManager(None, mock_session_service, auth_type="auth_xmss")
+        assert manager._authenticator.get_auth_type() == "auth_xmss"
+
+    def test_application_manager_registers_xmss(self, mock_session_service):
+        manager = ApplicationAuthManager(None, mock_session_service, auth_type="auth_xmss")
+        assert manager._authenticator.get_auth_type() == "auth_xmss"
 
 
 # ── Tests: llave de sesión ──────────────────────────────────────────
