@@ -7,7 +7,15 @@ from app.shared.authorization.models import CurrentUser
 from app.shared.auth.service import CurrentAccountDep
 
 
+_current_user_ctx: ContextVar[CurrentUser | None] = ContextVar(
+    "current_user", default=None
+)
+
 T = TypeVar("T")
+
+
+def get_current_user_from_context() -> CurrentUser | None:
+    return _current_user_ctx.get()
 
 
 def require_oso_permission(action: str, resource_type: type[T]):

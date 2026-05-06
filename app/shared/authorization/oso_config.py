@@ -8,6 +8,7 @@ from app.database.model import (
     User,
     Administrator,
     Manager,
+    Role,
     Service,
     Application,
     ServiceTicket,
@@ -28,6 +29,7 @@ def init_oso() -> Oso:
     oso.register_class(Administrator)
     oso.register_class(Manager)
     oso.register_class(Service)
+    oso.register_class(Role)
     oso.register_class(Application)
     oso.register_class(ServiceTicket)
     oso.register_class(EcosystemTicket)

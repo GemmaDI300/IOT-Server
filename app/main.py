@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.database import create_db_and_tables
@@ -17,11 +18,13 @@ from app.domain.role.controller import role_router
 from app.domain.service.controller import service_router
 from app.domain.manager.controller import manager_router
 from app.domain.tickets.controller import ecosystem_ticket_router, service_ticket_router
+from app.domain.role.controller import role_router
 from app.shared.middleware.auth.human import Human
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    init_logging(debug=settings.DEBUG)
     create_db_and_tables()
     yield
 
@@ -32,6 +35,16 @@ app = FastAPI(
     debug=settings.DEBUG,
     lifespan=lifespan,
 )
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.add_middleware(Human)
 
 app.add_middleware(Human)
 
