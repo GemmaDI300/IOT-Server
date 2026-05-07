@@ -48,3 +48,14 @@ class RoleResponse(BaseSchemaResponse):
     description: str | None
     service_id: UUID
     is_active: bool
+
+
+class UserRoleCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    user_id: UUID
+
+
+class UserRoleResponse(BaseSchemaResponse):
+    user_id: UUID
+    role_id: UUID
