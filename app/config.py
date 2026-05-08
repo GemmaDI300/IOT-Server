@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     # Session/Valkey Configuration
     VALKEY_URL: str = "redis://localhost:6379/0"
     ENCRYPTION_KEY: str = "change-me-32-byte-base64-key-here"  # Base64 encoded 32-byte key
+    SESSION_TTL_SECONDS: int = 3600
 
     # Authentication method by deployment
     # Allowed values: auth_rc, auth_xmss

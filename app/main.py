@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.database import create_db_and_tables
+from app.shared.logging import init_logging
 from app.shared.auth.controller import (
     auth_rc_router,
     auth_xmss_router,
@@ -47,8 +48,6 @@ app.add_middleware(
 
 app.add_middleware(Human)
 
-app.add_middleware(Human)
-
 api_version_v1_prefix = "/api/v1"
 
 app.include_router(change_password_logout_router, prefix=api_version_v1_prefix)
@@ -64,6 +63,5 @@ app.include_router(role_router, prefix=api_version_v1_prefix)
 app.include_router(service_router, prefix=api_version_v1_prefix)
 app.include_router(service_ticket_router, prefix=api_version_v1_prefix)
 app.include_router(ecosystem_ticket_router, prefix=api_version_v1_prefix)
-app.include_router(role_router, prefix=api_version_v1_prefix)
 app.include_router(payment_router, prefix=api_version_v1_prefix)
 

@@ -1,6 +1,20 @@
-version: "3.9"
-
 services:
+  # ── Valkey (Redis-compatible) — blacklist de tokens y rate limiting ──
+  valkey:
+    image: valkey/valkey:8-alpine
+    container_name: iot-valkey
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - valkey_data:/data
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      start_period: 5s
+      retries: 5
+
   # ── Backend (FastAPI + SQLite) ──
   backend:
     build:
@@ -14,11 +28,14 @@ services:
     volumes:
       - sqlite_data:/app/data
     restart: unless-stopped
+    depends_on:
+      valkey:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/docs')"]
       interval: 30s
       timeout: 5s
-      start_period: 15s
+      start_period: 20s
       retries: 3
 
   # ── Frontend (React + Nginx reverse proxy) ──
@@ -29,6 +46,9 @@ services:
       args:
         # URL relativa: nginx hace proxy al backend
         VITE_API_BASE_URL: /api/v1/
+        VITE_APP_APPLICATION_ID: "8a60188e-19dd-448c-8a7c-e71fe7675b5a"
+        VITE_APP_API_KEY: "d9cce4be9b580930687ed9e9d308c0bd3c75fe4b1cbc4fa5d9dc358f501eae39"
+        VITE_APP_SERVER_KEY: "8269a34f97e745a6c2b7df5be5184f76f878f647d356cfe46a10bf0022c680d4"
     container_name: iot-frontend
     ports:
       - "3000:3000"
@@ -39,6 +59,8 @@ services:
 
 volumes:
   sqlite_data:
+    driver: local
+  valkey_data:
     driver: local
 
 

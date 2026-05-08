@@ -160,27 +160,27 @@ class Service(BaseTable, table=True):
     )
     manager_services: list["ManagerService"] = Relationship(
         back_populates="service",
-        sa_relationship_kwargs={"lazy": "selectin"},
+        sa_relationship_kwargs={"lazy": "selectin", "cascade": "all, delete-orphan"},
     )
     application_services: list["ApplicationService"] = Relationship(
         back_populates="service",
-        sa_relationship_kwargs={"lazy": "selectin"},
+        sa_relationship_kwargs={"lazy": "selectin", "cascade": "all, delete-orphan"},
     )
     device_services: list["DeviceService"] = Relationship(
         back_populates="service",
-        sa_relationship_kwargs={"lazy": "selectin"},
+        sa_relationship_kwargs={"lazy": "selectin", "cascade": "all, delete-orphan"},
     )
     roles: list["Role"] = Relationship(
         back_populates="service",
-        sa_relationship_kwargs={"lazy": "selectin"},
+        sa_relationship_kwargs={"lazy": "selectin", "cascade": "all, delete-orphan"},
     )
     service_tickets: list["ServiceTicket"] = Relationship(
         back_populates="service",
-        sa_relationship_kwargs={"lazy": "selectin"},
+        sa_relationship_kwargs={"lazy": "selectin", "cascade": "all, delete-orphan"},
     )
     user_services: list["UserService"] = Relationship(
         back_populates="service",
-        sa_relationship_kwargs={"lazy": "selectin"},
+        sa_relationship_kwargs={"lazy": "selectin", "cascade": "all, delete-orphan"},
     )
 
 
@@ -308,20 +308,7 @@ class Role(BaseTable, table=True):
     )
     user_roles: list["UserRole"] = Relationship(
         back_populates="role",
-        sa_relationship_kwargs={"lazy": "selectin"},
-    )
-
-
-
-    role_id: UUID = Field(foreign_key="role.id", unique=True)
-    can_read: bool = Field(default=False)
-    can_write: bool = Field(default=False)
-    can_delete: bool = Field(default=False)
-    can_administer: bool = Field(default=False)
-
-    role: Role = Relationship(
-        back_populates="permission",
-        sa_relationship_kwargs={"lazy": "selectin"},
+        sa_relationship_kwargs={"lazy": "selectin", "cascade": "all, delete-orphan"},
     )
 
 
@@ -342,7 +329,7 @@ class UserRole(BaseTable, table=True):
     )
     service_tickets: list["ServiceTicket"] = Relationship(
         back_populates="user_role",
-        sa_relationship_kwargs={"lazy": "selectin"},
+        sa_relationship_kwargs={"lazy": "selectin", "cascade": "all, delete-orphan"},
     )
 
 
@@ -484,3 +471,14 @@ class PaymentHistory(BaseTable, table=True):
         back_populates="history",
         sa_relationship_kwargs={"lazy": "selectin"},
     )
+
+class AuditLog(BaseTable, table=True):
+    __tablename__ = "audit_log"  # pyright: ignore[reportAssignmentType]
+
+    account_id: UUID
+    account_type: str
+    action: str
+    resource_type: str
+    resource_id: UUID | None = None
+    details: str | None = None
+    ip_address: str | None = None
