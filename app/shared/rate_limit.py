@@ -1,68 +1,59 @@
-import re
+"""
+Sliding-window in-memory rate limiter.
 
-from fastapi import Depends, Request
+Returns a FastAPI dependency factory.  Tracks requests per (scope, client IP)
+so that different routers maintain independent counters.
 
-from app.config import settings
-from app.shared.session.exceptions import RateLimitExceededException
-from app.shared.session.repository import SessionRepository
+Usage:
+    from app.shared.rate_limit import rate_limiter
+    from fastapi import Depends
 
+    router_dependencies = [Depends(rate_limiter(max_requests=3, window_seconds=1.0, scope="managers"))]
+"""
+import time
+from collections import defaultdict, deque
+from threading import Lock
 
-RATE_LIMIT_MAX_ATTEMPTS = 3
-RATE_LIMIT_WINDOW_SECONDS = 1
-
-
-def get_rate_limit_repository() -> SessionRepository:
-    return SessionRepository(settings.VALKEY_URL)
-
-
-def _slugify_scope(value: str) -> str:
-    normalized = re.sub(r"[^a-z0-9]+", "-", value.strip().lower())
-    return normalized.strip("-") or "unknown"
+from fastapi import HTTPException, Request, status
 
 
-def _resolve_scope_name(request: Request) -> str:
-    route = request.scope.get("route")
-    tags = getattr(route, "tags", None) or []
-    if tags:
-        return _slugify_scope(str(tags[0]))
-
-    path_format = getattr(route, "path_format", None)
-    if path_format:
-        return _slugify_scope(path_format)
-
-    return _slugify_scope(request.url.path)
+# Key: "<scope>:<client_ip>"  →  deque of monotonic timestamps
+_windows: defaultdict[str, deque] = defaultdict(deque)
+_lock = Lock()
 
 
-def _resolve_subject_name(request: Request) -> str:
-    current_account = getattr(request.state, "current_account", None)
-    if isinstance(current_account, dict):
-        account_id = current_account.get("account_id")
-        if account_id:
-            return f"account:{account_id}"
+def rate_limiter(max_requests: int = 3, window_seconds: float = 1.0, scope: str = "default"):
+    """
+    Factory that returns a FastAPI dependency enforcing a sliding-window rate
+    limit of *max_requests* per *window_seconds* per (scope, client IP).
 
-    client_host = request.client.host if request.client else "unknown"
-    return f"ip:{client_host}"
+    Each unique *scope* keeps its own counter, so different routers do not
+    share their quota.  Raises HTTP 429 when the limit is exceeded.
+    """
 
+    def dependency(request: Request) -> None:
+        client_ip = request.client.host if request.client else "unknown"
+        bucket = f"{scope}:{client_ip}"
+        now = time.monotonic()
+        window_start = now - window_seconds
 
-def build_rate_limit_key(request: Request) -> str:
-    scope_name = _resolve_scope_name(request)
-    subject_name = _resolve_subject_name(request)
-    return f"{scope_name}:{subject_name}"
+        with _lock:
+            log = _windows[bucket]
 
+            # Evict timestamps that have fallen outside the window
+            while log and log[0] < window_start:
+                log.popleft()
 
-async def enforce_request_rate_limit(
-    request: Request,
-    repository: SessionRepository = Depends(get_rate_limit_repository),
-) -> None:
-    key = build_rate_limit_key(request)
+            if len(log) >= max_requests:
+                raise HTTPException(
+                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                    detail=(
+                        f"Rate limit exceeded: max {max_requests} requests "
+                        f"per {window_seconds:.0f} second(s)."
+                    ),
+                    headers={"Retry-After": "1"},
+                )
 
-    try:
-        current_attempts = await repository.increment_rate_limit(
-            key,
-            window_seconds=RATE_LIMIT_WINDOW_SECONDS,
-        )
-        if current_attempts > RATE_LIMIT_MAX_ATTEMPTS:
-            retry_after = await repository.get_rate_limit_ttl(key)
-            raise RateLimitExceededException(retry_after=max(retry_after, 1))
-    finally:
-        await repository.close()
+            log.append(now)
+
+    return dependency
