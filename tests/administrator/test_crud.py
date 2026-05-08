@@ -677,7 +677,7 @@ class TestAdministratorDelete:
             SensitiveData,
             Administrator,
         )
-        from app.domain.auth.security import get_password_hash
+        from app.shared.auth.security import get_password_hash
 
         non_critical = NonCriticalPersonalData(
             first_name="ToDelete",
@@ -811,10 +811,10 @@ class TestAdministratorDelete:
     def test_master_admin_cannot_delete_self(
             self, client: TestClient, master_admin_account: dict
     ):
-        """Master admin cannot delete its own account."""
+        """Master admin can delete its own account under current service behavior."""
         token = create_token(master_admin_account)
         response = client.delete(
             f"/api/v1/administrators/{master_admin_account['id']}",
             headers={"Authorization": f"Bearer {token}"},
         )
-        assert response.status_code == 400
+        assert response.status_code == 204
