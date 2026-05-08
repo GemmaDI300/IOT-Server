@@ -9,8 +9,8 @@ from starlette.responses import JSONResponse
 
 from app.config import settings
 from app.database import engine
-from app.database.model import Administrator, Manager, User
-from app.domain.auth.security import decode_access_token
+from app.database.model import Administrator, Application, Device, Manager, User
+from app.shared.auth.security import decode_access_token
 from app.shared.session.repository import SessionRepository
 
 
@@ -18,7 +18,32 @@ PUBLIC_PATHS = {
     "/docs",
     "/openapi.json",
     "/redoc",
-    "/api/v1/auth/login",
+
+    # Auth RC - humanos separados
+    "/api/v1/auth-rc/user/login",
+    "/api/v1/auth-rc/manager/login",
+    "/api/v1/auth-rc/admin/login",
+    "/api/v1/auth-rc/master/login",
+
+    # Auth RC - entidades no humanas
+    "/api/v1/auth-rc/devices/login",
+    "/api/v1/auth-rc/applications/login",
+
+    # Auth XMSS - humanos separados
+    "/api/v1/auth-xmss/user/challenge",
+    "/api/v1/auth-xmss/user/verify",
+    "/api/v1/auth-xmss/manager/challenge",
+    "/api/v1/auth-xmss/manager/verify",
+    "/api/v1/auth-xmss/admin/challenge",
+    "/api/v1/auth-xmss/admin/verify",
+    "/api/v1/auth-xmss/master/challenge",
+    "/api/v1/auth-xmss/master/verify",
+
+    # Auth XMSS - entidades no humanas
+    "/api/v1/auth-xmss/devices/challenge",
+    "/api/v1/auth-xmss/devices/verify",
+    "/api/v1/auth-xmss/applications/challenge",
+    "/api/v1/auth-xmss/applications/verify",
 }
 
 
@@ -63,9 +88,15 @@ class Human(BaseHTTPMiddleware):
                     )
 
             raw_account_id = payload.get("sub")
-            account_type = payload.get("type")
+            account_type = (
+                payload.get("account_type")
+                or payload.get("type")
+                or payload.get("entity_type")
+            )
+
             email = payload.get("email")
             is_master = bool(payload.get("is_master", False))
+            auth_method = payload.get("auth_method", "auth_rc")
 
             if not raw_account_id:
                 return JSONResponse(
@@ -73,17 +104,25 @@ class Human(BaseHTTPMiddleware):
                     content={"detail": "Token is missing account identifier"},
                 )
 
-            if account_type not in {"administrator", "manager", "user"}:
+            model_map = {
+                "administrator": Administrator,
+                "manager": Manager,
+                "user": User,
+                "device": Device,
+                "application": Application,
+            }
+
+            if account_type not in model_map:
                 return JSONResponse(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     content={"detail": "Invalid account type in token"},
                 )
 
-            model_map = {
-                "administrator": Administrator,
-                "manager": Manager,
-                "user": User,
-            }
+            if auth_method not in {"auth_rc", "auth_xmss"}:
+                return JSONResponse(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    content={"detail": "Invalid authentication method"},
+                )
 
             account_id = UUID(str(raw_account_id))
 
@@ -102,12 +141,17 @@ class Human(BaseHTTPMiddleware):
                         content={"detail": "Account is inactive"},
                     )
 
+                sensitive_data_id = getattr(account, "sensitive_data_id", None)
+
                 request.state.current_account = {
                     "account_id": str(account.id),
-                    "sensitive_data_id": str(account.sensitive_data_id),
+                    "sensitive_data_id": str(sensitive_data_id)
+                    if sensitive_data_id
+                    else None,
                     "account_type": account_type,
                     "email": email,
                     "is_master": is_master,
+                    "auth_method": auth_method,
                 }
 
         except Exception:

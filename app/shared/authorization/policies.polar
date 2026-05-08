@@ -90,3 +90,23 @@ allow(user: CurrentUser, "write", resource: User) if
 allow(user: CurrentUser, "write", resource) if
     resource.id = user.account_id and
     user.account_type in ["administrator", "manager", "user"];
+
+# Payment 
+allow(user: CurrentUser, action, _resource: Payment) if
+    user.account_type = "administrator" and
+    not user.is_master and
+    action in ["read", "write", "delete"];
+
+allow(user: CurrentUser, action, _resource: SubscriptionType) if
+    user.account_type = "administrator" and
+    not user.is_master and
+    action in ["read", "write", "delete"];
+
+allow(user: CurrentUser, action, _resource: UserService) if
+    user.account_type = "administrator" and
+    not user.is_master and
+    action in ["read", "write", "delete"];
+
+# User 
+allow(user: CurrentUser, "read", _resource: Payment) if
+    user.account_type = "user";

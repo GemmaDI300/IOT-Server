@@ -26,7 +26,11 @@ def create_token(account_data: dict) -> str:
     )
 
 
-def create_service_via_api(client, master_admin_account: dict, name: str = "Svc Role Test") -> str:
+def create_service_via_api(
+    client,
+    master_admin_account: dict,
+    name: str = "Svc Role Test",
+) -> str:
     resp = client.post(
         "/api/v1/services",
         json={
@@ -45,8 +49,6 @@ def service_id(client, master_admin_account):
 
 
 class TestRoleSchemaValidation:
-    """Validadores Pydantic de Role sans HTTP."""
-
     def test_create_accepts_unicode_letters_only(self):
         payload = RoleCreate(
             name="OperadorÓ",
@@ -69,7 +71,12 @@ class TestRoleSchemaValidation:
 
 
 class TestRoleCreateApi:
-    def test_create_role_success_master_admin(self, client, master_admin_account, service_id):
+    def test_create_role_success_master_admin(
+        self,
+        client,
+        master_admin_account,
+        service_id,
+    ):
         token = create_token(master_admin_account)
         response = client.post(
             "/api/v1/roles",
@@ -91,7 +98,10 @@ class TestRoleCreateApi:
         assert "created_at" in data
 
     def test_create_role_invalid_name_returns_422(
-        self, client, master_admin_account, service_id
+        self,
+        client,
+        master_admin_account,
+        service_id,
     ):
         token = create_token(master_admin_account)
         response = client.post(
@@ -104,7 +114,12 @@ class TestRoleCreateApi:
         )
         assert response.status_code == 422
 
-    def test_create_role_extra_fields_forbidden(self, client, master_admin_account, service_id):
+    def test_create_role_extra_fields_forbidden(
+        self,
+        client,
+        master_admin_account,
+        service_id,
+    ):
         token = create_token(master_admin_account)
         response = client.post(
             "/api/v1/roles",
@@ -123,7 +138,13 @@ class TestRoleListRetrieveApi:
         response = client.get("/api/v1/roles")
         assert response.status_code == 401
 
-    def test_list_roles_user_allowed(self, client, user_account, master_admin_account, service_id):
+    def test_list_roles_user_allowed(
+        self,
+        client,
+        user_account,
+        master_admin_account,
+        service_id,
+    ):
         token_admin = create_token(master_admin_account)
         client.post(
             "/api/v1/roles",
@@ -153,7 +174,13 @@ class TestRoleAuthorizationApi:
         )
         assert response.status_code == 403
 
-    def test_manager_can_create_role(self, client, manager_account, master_admin_account, service_id):
+    def test_manager_can_create_role(
+        self,
+        client,
+        manager_account,
+        master_admin_account,
+        service_id,
+    ):
         token = create_token(manager_account)
         response = client.post(
             "/api/v1/roles",
@@ -165,7 +192,13 @@ class TestRoleAuthorizationApi:
         )
         assert response.status_code == 201, response.text
 
-    def test_manager_delete_forbidden(self, client, manager_account, master_admin_account, service_id):
+    def test_manager_delete_forbidden(
+        self,
+        client,
+        manager_account,
+        master_admin_account,
+        service_id,
+    ):
         admin_tok = create_token(master_admin_account)
         create_resp = client.post(
             "/api/v1/roles",
@@ -183,7 +216,11 @@ class TestRoleAuthorizationApi:
         assert response.status_code == 403
 
     def test_regular_admin_can_delete_role(
-        self, client, regular_admin_account, master_admin_account, service_id
+        self,
+        client,
+        regular_admin_account,
+        master_admin_account,
+        service_id,
     ):
         admin_master_tok = create_token(master_admin_account)
         create_resp = client.post(
@@ -202,7 +239,13 @@ class TestRoleAuthorizationApi:
 
 
 class TestRoleUpdateDeleteApi:
-    def test_patch_role_regular_admin(self, client, master_admin_account, regular_admin_account, service_id):
+    def test_patch_role_regular_admin(
+        self,
+        client,
+        master_admin_account,
+        regular_admin_account,
+        service_id,
+    ):
         master_tok = create_token(master_admin_account)
         create_resp = client.post(
             "/api/v1/roles",

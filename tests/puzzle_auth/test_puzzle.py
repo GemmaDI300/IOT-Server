@@ -164,7 +164,7 @@ class TestDeviceAuthValid:
 
     def test_auth_type_is_rc(self):
         from app.shared.middleware.auth.auth_rc.device import DeviceAuth
-        assert DeviceAuth().get_auth_type() == "rc"
+        assert DeviceAuth().get_auth_type() == "auth_rc"
 
 
 class TestDeviceAuthNoKey:
@@ -191,7 +191,7 @@ class TestApplicationAuthValid:
 
     def test_auth_type_is_rc(self):
         from app.shared.middleware.auth.auth_rc.application import ApplicationAuth
-        assert ApplicationAuth().get_auth_type() == "rc"
+        assert ApplicationAuth().get_auth_type() == "auth_rc"
 
 
 class TestApplicationAuthNoKey:

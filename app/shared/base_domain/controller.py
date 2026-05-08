@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel
 
 from app.shared.pagination import PageParams, PageResponse
+from app.shared.rate_limit import enforce_request_rate_limit
 from typing import Any, ClassVar
 
 
@@ -30,7 +31,7 @@ class BaseApiController(ABC):
         self.router = APIRouter(
             prefix=self.prefix,
             tags=self.tags or [self.prefix.strip("/").title()],
-            dependencies=self.router_dependencies or [],
+            dependencies=[Depends(enforce_request_rate_limit), *(self.router_dependencies or [])],
         )
         self._register_routes()
 
