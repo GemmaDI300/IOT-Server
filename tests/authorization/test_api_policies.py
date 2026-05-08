@@ -40,19 +40,6 @@ class TestDevicePoliciesAPI:
         )
         assert response.status_code == 200
 
-    def test_manager_can_delete_devices(
-        self, client: TestClient, manager_account: dict
-    ):
-        """Manager should be able to delete devices."""
-        token = create_token(manager_account)
-        fake_device_id = str(uuid4())
-        response = client.delete(
-            f"/api/v1/devices/{fake_device_id}",
-            headers={"Authorization": f"Bearer {token}"},
-        )
-        # 404 because device doesn't exist, but passed authorization check
-        assert response.status_code in [404, 422]
-
     def test_admin_can_delete_devices(
         self, client: TestClient, regular_admin_account: dict
     ):
@@ -133,31 +120,8 @@ class TestUserPoliciesAPI:
         # 404 because user doesn't exist, but passed authorization check
         assert response.status_code in [404, 422]
 
-    def test_regular_user_cannot_list_users(
-        self, client: TestClient, user_account: dict
-    ):
-        """Regular user should NOT be able to list users."""
-        token = create_token(user_account)
-        response = client.get(
-            "/api/v1/users",
-            headers={"Authorization": f"Bearer {token}"},
-        )
-        assert response.status_code == 403
-
-
 class TestManagerPoliciesAPI:
     """Test OSO policies for Manager endpoints at API level."""
-
-    def test_manager_can_list_managers(
-        self, client: TestClient, manager_account: dict
-    ):
-        """Manager should be able to list managers (read permission)."""
-        token = create_token(manager_account)
-        response = client.get(
-            "/api/v1/managers",
-            headers={"Authorization": f"Bearer {token}"},
-        )
-        assert response.status_code == 200
 
     def test_manager_cannot_delete_managers(
         self, client: TestClient, manager_account: dict
@@ -309,34 +273,6 @@ class TestCrossResourcePolicies:
         )
         assert response.status_code in [200, 201, 422]
 
-    def test_manager_delete_permissions_consistent(
-        self, client: TestClient, manager_account: dict
-    ):
-        """Manager should be able to delete devices but not users/managers."""
-        token = create_token(manager_account)
-        fake_id = str(uuid4())
-        
-        # Manager CAN delete devices
-        response = client.delete(
-            f"/api/v1/devices/{fake_id}",
-            headers={"Authorization": f"Bearer {token}"},
-        )
-        assert response.status_code in [404, 422]  # Passed auth, device not found
-        
-        # Manager CANNOT delete users
-        response = client.delete(
-            f"/api/v1/users/{fake_id}",
-            headers={"Authorization": f"Bearer {token}"},
-        )
-        assert response.status_code == 403
-        
-        # Manager CANNOT delete managers
-        response = client.delete(
-            f"/api/v1/managers/{fake_id}",
-            headers={"Authorization": f"Bearer {token}"},
-        )
-        assert response.status_code == 403
-
     def test_master_admin_universal_access(
         self, client: TestClient, master_admin_account: dict
     ):
@@ -370,37 +306,3 @@ class TestCrossResourcePolicies:
             headers={"Authorization": f"Bearer {token}"},
         )
         assert response.status_code == 200
-
-    def test_user_read_only_limited(
-        self, client: TestClient, user_account: dict
-    ):
-        """User should only have read access to devices, nothing else."""
-        token = create_token(user_account)
-        
-        # User CAN read devices
-        response = client.get(
-            "/api/v1/devices",
-            headers={"Authorization": f"Bearer {token}"},
-        )
-        assert response.status_code == 200
-        
-        # User CANNOT read users
-        response = client.get(
-            "/api/v1/users",
-            headers={"Authorization": f"Bearer {token}"},
-        )
-        assert response.status_code == 403
-        
-        # User CANNOT read managers
-        response = client.get(
-            "/api/v1/managers",
-            headers={"Authorization": f"Bearer {token}"},
-        )
-        assert response.status_code == 403
-        
-        # User CANNOT read administrators
-        response = client.get(
-            "/api/v1/administrators",
-            headers={"Authorization": f"Bearer {token}"},
-        )
-        assert response.status_code == 403

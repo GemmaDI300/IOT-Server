@@ -1,6 +1,6 @@
 from abc import ABC
-from typing import Annotated
-
+from typing import Annotated, override
+from uuid import UUID
 from fastapi import Depends
 
 from uuid import UUID
@@ -14,6 +14,9 @@ from app.database import SessionDep
 from app.domain.user.repository import UserRepository
 from app.domain.personal_data.schemas import PersonalDataCreate, PersonalDataUpdate
 from app.domain.personal_data.service import PersonalDataService
+from app.shared.authorization.dependencies import get_current_user_from_context
+from app.shared.exceptions import NotFoundException
+from app.shared.pagination import PageResponse
 
 
 class IUserService(IBaseService[User, PersonalDataCreate, PersonalDataUpdate], ABC):
@@ -24,81 +27,56 @@ class UserService(PersonalDataService[User], IUserService):
     entity_name = "User"
     repository_class = UserRepository
 
-    def assign_role_to_user(self, user_id: UUID, role_id: UUID) -> UserRole:
-        session = self.repository.session
+    @override
+    def get_all(self, offset: int = 0, limit: int = 20) -> PageResponse[User]:
+        current_user = get_current_user_from_context()
+        if current_user is None:
+            return super().get_all(offset, limit)
 
-        user = session.get(User, user_id)
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="User not found",
-            )
+        if current_user.account_type == "administrator":
+            items, total = self.repository.get_all(offset, limit)
+        elif current_user.account_type == "manager":
+            items, total = self.repository.get_for_manager(current_user.account_id, offset, limit)
+        elif current_user.account_type == "user":
+            entity = self.repository.get_by_id(current_user.account_id)
+            items = [entity] if entity else []
+            total = 1 if entity else 0
+        else:
+            return PageResponse(total=0, offset=offset, limit=limit, data=[])
 
-        role = session.get(Role, role_id)
-        if not role:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Role not found",
-            )
+        return PageResponse(total=total, offset=offset, limit=limit, data=items)
 
-        existing = session.exec(
-            select(UserRole)
-            .where(UserRole.user_id == user_id)
-            .where(UserRole.role_id == role_id)
-        ).first()
+    @override
+    def get_by_id(self, id: UUID) -> User:
+        entity = self.repository.get_by_id(id)
+        if not entity:
+            raise NotFoundException(self.entity_name, id)
 
-        if existing:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Role already assigned to user",
-            )
+        current_user = get_current_user_from_context()
+        if current_user is None:
+            return entity
 
-        user_role = UserRole(
-            user_id=user_id,
-            role_id=role_id,
-        )
+        if current_user.account_type == "administrator":
+            return entity
 
-        session.add(user_role)
-        session.commit()
-        session.refresh(user_role)
+        if current_user.account_type == "manager":
+            if not self.repository.check_manager_access(id, current_user.account_id):
+                raise NotFoundException(self.entity_name, id)
+            return entity
 
-        return user_role
+        if current_user.account_type == "user":
+            if entity.id != current_user.account_id:
+                raise NotFoundException(self.entity_name, id)
+            return entity
 
-    def remove_role_from_user(self, user_id: UUID, role_id: UUID) -> None:
-        session = self.repository.session
+        raise NotFoundException(self.entity_name, id)
 
-        user_role = session.exec(
-            select(UserRole)
-            .where(UserRole.user_id == user_id)
-            .where(UserRole.role_id == role_id)
-        ).first()
 
-        if not user_role:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Role assignment not found",
-            )
+def get_user_service(session: SessionDep) -> UserService:
+    return UserService(session)
 
-        session.delete(user_role)
-        session.commit()
 
-    def list_roles_by_user(self, user_id: UUID) -> list[Role]:
-        session = self.repository.session
-
-        user = session.get(User, user_id)
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="User not found",
-            )
-
-        roles = session.exec(
-            select(Role)
-            .join(UserRole, UserRole.role_id == Role.id)
-            .where(UserRole.user_id == user_id)
-        ).all()
-
-        return list(roles)
+UserServiceDep = Annotated[UserService, Depends(get_user_service)]
 
 
 def get_user_service(session: SessionDep) -> UserService:
