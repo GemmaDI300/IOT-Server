@@ -1,6 +1,8 @@
 from abc import ABC
 from typing import Annotated
+
 from fastapi import Depends
+
 from app.database import SessionDep
 from app.database.model import Role
 from app.domain.role.repository import RoleRepository

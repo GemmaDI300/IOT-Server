@@ -20,3 +20,20 @@ class ServiceResponse(BaseSchemaResponse):
     description: str | None
     administrator_id: UUID
     is_active: bool
+
+
+# ── Schemas para tablas intermedias ─────────────────────────────────
+
+class ManagerServiceResponse(BaseSchemaResponse):
+    manager_id: UUID
+    service_id: UUID
+
+
+class ApplicationServiceResponse(BaseSchemaResponse):
+    application_id: UUID
+    service_id: UUID
+
+
+class DeviceServiceResponse(BaseSchemaResponse):
+    device_id: UUID
+    service_id: UUID

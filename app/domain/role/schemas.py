@@ -1,5 +1,7 @@
 from uuid import UUID
-from pydantic import BaseModel, Field, ConfigDict, field_validator
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
 from app.shared.base_domain.schemas import BaseSchemaResponse
 
 
@@ -10,7 +12,9 @@ def _normalize_role_name_strict_letters(value: str) -> str:
     if len(trimmed) > 255:
         raise ValueError("name cannot exceed 255 characters")
     if not all(ch.isalpha() for ch in trimmed):
-        raise ValueError("name must contain only letters (no digits, spaces, or symbols)")
+        raise ValueError(
+            "name must contain only letters (no digits, spaces, or symbols)"
+        )
     return trimmed
 
 

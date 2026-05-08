@@ -1,5 +1,7 @@
 from abc import ABC
+
 from sqlmodel import Session
+
 from app.database.model import Role
 from app.shared.base_domain.repository import BaseRepository, IBaseRepository
 

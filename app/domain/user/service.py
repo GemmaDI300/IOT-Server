@@ -2,8 +2,14 @@ from abc import ABC
 from typing import Annotated, override
 from uuid import UUID
 from fastapi import Depends
+
+from uuid import UUID
+
+from fastapi import HTTPException, status
+from sqlmodel import select
+
 from app.shared.base_domain.service import IBaseService
-from app.database.model import User
+from app.database.model import Role, User, UserRole
 from app.database import SessionDep
 from app.domain.user.repository import UserRepository
 from app.domain.personal_data.schemas import PersonalDataCreate, PersonalDataUpdate

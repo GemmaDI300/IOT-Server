@@ -27,6 +27,11 @@ logger = logging.getLogger(__name__)
 
 T = TypeVar("T", bound=BaseTable)
 
+AUTH_TYPE_ALIASES: dict[str, str] = {
+    "auth_rc": "rc",
+    "auth_xmss": "xmss",
+}
+
 
 class AuthManager(ABC, Generic[T]):
     """
@@ -65,12 +70,17 @@ class AuthManager(ABC, Generic[T]):
         """Buscar la entidad en BD usando el repository."""
         return self.repository.get_by_id(entity_id)
 
+    def _normalize_auth_type(self, auth_type: str) -> str:
+        """Aceptar aliases canónicos para dejar preparado el switch futuro."""
+        return AUTH_TYPE_ALIASES.get(auth_type, auth_type)
+
     def _resolve_auth_type(self, auth_type: str) -> IAuthMethod:
         """
         Resolver el tipo de autenticación desde el registro.
         Retorna una instancia que implementa IAuthMethod.
         """
-        auth_class = self._auth_methods.get(auth_type)
+        normalized_auth_type = self._normalize_auth_type(auth_type)
+        auth_class = self._auth_methods.get(normalized_auth_type)
         if not auth_class:
             available = ", ".join(self._auth_methods.keys()) or "ninguno"
             raise ValueError(

@@ -1,12 +1,14 @@
 from fastapi.testclient import TestClient
 
 
-class TestAuthValidation:
-    def test_change_password_rejects_weak_new_password(
-        self, client: TestClient, master_admin_account: dict
+class TestChangePassword:
+    def test_change_password_rejects_reusing_current_password(
+        self,
+        client: TestClient,
+        master_admin_account: dict,
     ):
         login_response = client.post(
-            "/api/v1/auth/login",
+            "/api/v1/auth-rc/master/login",
             json={
                 "email": master_admin_account["email"],
                 "password": master_admin_account["password"],
@@ -20,9 +22,10 @@ class TestAuthValidation:
             "/api/v1/auth/change-password",
             json={
                 "current_password": master_admin_account["password"],
-                "new_password": "12345678",
+                "new_password": master_admin_account["password"],
             },
             headers={"Authorization": f"Bearer {token}"},
         )
 
-        assert response.status_code == 422
+        assert response.status_code == 400
+        assert "different" in response.json()["detail"].lower()
